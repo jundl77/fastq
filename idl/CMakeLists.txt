@@ -5,7 +5,7 @@ SET(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS "--gen-all")
 file(GLOB fbs "*.fbs")
 
 # generate cpp files from idl files
-set(generated_files "")
+set(generated_sources "")
 foreach(fb ${fbs})
     get_filename_component(stem ${fb} NAME_WE)
     get_filename_component(name ${fb} NAME)
@@ -24,10 +24,11 @@ foreach(fb ${fbs})
             DEPENDS flatc ${fb}
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
-    list(APPEND generated_files ${generated_include})
+    list(APPEND generated_sources ${generated_include})
 endforeach()
 
 add_library(${TARGET_NAME}
-        ${generated_files})
+        ${generated_sources})
 target_link_libraries(${TARGET_NAME} PUBLIC flatbuffers)
+target_compile_options(${TARGET_NAME} PRIVATE ${cxx_compile_options})
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
