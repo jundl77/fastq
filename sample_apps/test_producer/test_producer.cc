@@ -1,7 +1,8 @@
-#include <iostream>
+#include <producer/producer.h>
 
 int main(int argc, const char** argv)
 {
-	std::cout << "started test producer app" <<std::endl;
+	FastQ::Producer producer {};
+	producer.Produce();
 	return 1;
 }

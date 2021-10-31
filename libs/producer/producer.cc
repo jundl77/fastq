@@ -1,20 +1,17 @@
 #include "producer.h"
+#include <core/logger.h>
+#include <idl/fastq_generated.h>
+#include <idl/system_asserts.h> // do not remove, ensures important assertions
 #include <flatbuffers/flatbuffers.h>
-#include <fastq_generated.h>
 
 namespace FastQ {
 
-void Produce()
+static const LogModule LM_PRODUCER {"FASTQ_PRODUCER"};
+
+void Producer::Produce()
 {
+	LOG(INFO, LM_PRODUCER, "producing")
 	flatbuffers::FlatBufferBuilder builder(1024);
-	auto weapon_one_name = builder.CreateString("Sword");
-	short weapon_one_damage = 3;
-
-	auto weapon_two_name = builder.CreateString("Axe");
-	short weapon_two_damage = 5;
-
-	auto sword = CreateWeapon(builder, weapon_one_name, weapon_one_damage);
-	auto axe = CreateWeapon(builder, weapon_two_name, weapon_two_damage);
 }
 
 }

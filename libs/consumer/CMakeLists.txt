@@ -11,4 +11,4 @@ target_link_libraries(${TARGET_NAME} PUBLIC
         fastq_idl)
 
 target_compile_options(${TARGET_NAME} PRIVATE ${cxx_compile_options})
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${TARGET_NAME} PUBLIC ..)

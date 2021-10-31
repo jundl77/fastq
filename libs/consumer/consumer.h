@@ -1,15 +1,12 @@
-//
-// Created by julian on 10/30/21.
-//
+#pragma once
 
-#ifndef CONSUMER_H
-#define CONSUMER_H
+namespace FastQ {
 
-
-class consumer
+class Consumer
 {
+	Consumer() = default;
 
+	void Consume();
 };
 
-
-#endif //CONSUMER_H
+}

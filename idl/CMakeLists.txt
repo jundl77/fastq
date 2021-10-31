@@ -28,7 +28,9 @@ foreach(fb ${fbs})
 endforeach()
 
 add_library(${TARGET_NAME}
+        system_asserts.h
         ${generated_sources})
 target_link_libraries(${TARGET_NAME} PUBLIC flatbuffers)
 target_compile_options(${TARGET_NAME} PRIVATE ${cxx_compile_options})
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/..)
+target_include_directories(${TARGET_NAME} PUBLIC ..)
