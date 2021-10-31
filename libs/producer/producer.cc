@@ -2,18 +2,15 @@
 
 #include <core/throw_if.h>
 #include <core/logger.h>
-#include <idl/fastq_generated.h>
-#include <idl/system_asserts.h> // do not remove, ensures important assertions
-#include <flatbuffers/flatbuffers.h>
+#include <idl/fastq.h>
 
 #include <fstream>
 #include <utility>
-#include <cstdlib>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <cstring>
 
 namespace FastQ {
 
@@ -30,24 +27,16 @@ void Producer::Start()
 {
 	LOG(INFO, LM_PRODUCER, "starting producer")
 
-	mFd = CreateMmappedFile(mShmFilename, mFilesizeMb);
+	mFastQBuffer = CreateMmappedFile(mShmFilename, mFilesizeMb);
+	Idl::FastQueue fastQueue {};
+	memcpy(mFastQBuffer.mAddr, &fastQueue, sizeof(fastQueue));
+	mFastQueue = reinterpret_cast<Idl::FastQueue*>(mFastQBuffer.mAddr);
 
-	flatbuffers::FlatBufferBuilder builder(1024);
-	auto container = FastQContainer(1.0f, 2.0f, 3.0f);
-
-//	std::ifstream infile;
-//	infile.open("monsterdata_test.mon", std::ios::binary | std::ios::in);
-//	infile.seekg(0,std::ios::end);
-//	int length = infile.tellg();
-//	infile.seekg(0,std::ios::beg);
-//	char *data = new char[length];
-//	infile.read(data, length);
-//	infile.close();
-
-	//auto monster = GetMonster(data);
+	mFastQueue->mTestValue = 10;
+	LOG(INFO, LM_PRODUCER, "test value: " << (int) mFastQueue->mTestValue)
 }
 
-int Producer::CreateMmappedFile(const std::string& shmFilename, int filesizeMb)
+MmapedFile Producer::CreateMmappedFile(const std::string& shmFilename, int filesizeMb)
 {
 	LOG(INFO, LM_PRODUCER, "mapping " << shmFilename << " to memory with size of " << filesizeMb << "MB");
 
@@ -89,7 +78,11 @@ int Producer::CreateMmappedFile(const std::string& shmFilename, int filesizeMb)
 	}
 
 	LOG(INFO, LM_PRODUCER, "mapped " << shmFilename << " to memory successfully");
-	return fd;
+	return MmapedFile
+	{
+		.mFd = fd,
+		.mAddr = addr
+	};
 }
 
 }

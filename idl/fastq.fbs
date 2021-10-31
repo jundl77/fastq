@@ -1,8 +1,0 @@
-namespace FastQ;
-
-struct FastQContainer
-{
-  x:float;
-  y:float;
-  z:float;
-}

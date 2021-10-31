@@ -1,5 +1,7 @@
 #pragma once
 
+#include <idl/fastq.h>
+#include <core/types.h>
 #include <string>
 
 namespace FastQ {
@@ -11,11 +13,13 @@ public:
 	void Start();
 
 private:
-	int CreateMmappedFile(const std::string& shmFilename, int filesizeMb);
+	MmapedFile CreateMmappedFile(const std::string& shmFilename, int filesizeMb);
 
 	std::string mShmFilename;
 	int mFilesizeMb;
-	int mFd {0};
+	MmapedFile mFastQBuffer;
+
+	Idl::FastQueue* mFastQueue;
 };
 
 }

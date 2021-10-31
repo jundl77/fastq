@@ -1,3 +1,0 @@
-[submodule "x_flatbuffers"]
-	path = x_flatbuffers
-	url = git@github.com:google/flatbuffers.git
