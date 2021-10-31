@@ -7,7 +7,7 @@ int main(int argc, const char** argv)
 {
 	LOG(INFO, LM_APP, "starting test producer app");
 
-	FastQ::Producer<10, 100> producer {"../test.shm", 2};
+	FastQ::Producer<10, 100> producer {"../test.shm", 10 * 100};
 	producer.Start();
 
 	while (true) { };

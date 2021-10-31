@@ -14,6 +14,7 @@ class MmappedFile
 {
 public:
 	explicit MmappedFile(std::string shmFilename);
+	~MmappedFile();
 
 	void Create(int initialSize);
 	void Mmap(int size, MmapProtMode);

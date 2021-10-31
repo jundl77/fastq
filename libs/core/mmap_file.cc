@@ -19,10 +19,18 @@ MmappedFile::MmappedFile(std::string shmFilename)
 {
 }
 
+MmappedFile::~MmappedFile()
+{
+	if (mIsMapped)
+	{
+		Munmap();
+	}
+}
+
 void MmappedFile::Create(int initialSize)
 {
 	THROW_IF(mIsMapped, "cannot create a new shm file while there is already a file mapped")
-	LOG(INFO, LM_MMAP, "creating " << mShmFilename << " with initial size of " << initialSize << "MB");
+	LOG(INFO, LM_MMAP, "creating " << mShmFilename << " with initial size of " << initialSize);
 
 	// open file
 	mFd = OpenFile(MmapProtMode::READ_WRITE);
@@ -83,6 +91,9 @@ void MmappedFile::Munmap()
 		THROW_IF(true, "error unmmapping file");
 	}
 	close(mFd);
+	mAddr = NULL;
+	mMappedSize = 0;
+	mIsMapped = false;
 }
 
 void* MmappedFile::GetAddress() const

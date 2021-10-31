@@ -16,27 +16,29 @@ template<uint32_t SizeT, uint32_t CountT>
 class Consumer
 {
 public:
-	Consumer(std::string shmFilename, int filesizeMb)
+	Consumer(std::string shmFilename)
 		: mShmFilename(std::move(shmFilename))
-		, mFilesizeMb(filesizeMb)
 	{}
 
 	void Start()
 	{
 		LOG(INFO, LM_CONSUMER, "starting consumer")
 		mFastQBuffer = std::make_unique<MmappedFile>(mShmFilename);
-		mFastQBuffer->Create(mFilesizeMb * 1000 * 1000);
-		mFastQBuffer->Mmap(mFilesizeMb * 1000 * 1000, MmapProtMode::READ_ONLY);
+		mFastQBuffer->Mmap(TotalBufferSize(), MmapProtMode::READ_ONLY);
 		mFastQueue = reinterpret_cast<FastQueue*>(mFastQBuffer->GetAddress());
 		LOG(INFO, LM_CONSUMER, "protocol name: " << mFastQueue->mHeader.mProtocolName);
+		LOG(INFO, LM_CONSUMER, "magic number: " << mFastQueue->mHeader.mMagicNumber);
 	}
 
 private:
 	using FastQueue = Idl::FastQueue<SizeT, CountT>;
 
-private:
+	int TotalBufferSize()
+	{
+		return Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + SizeT * CountT;
+	}
+
 	std::string mShmFilename;
-	int mFilesizeMb;
 	std::unique_ptr<MmappedFile> mFastQBuffer;
 
 	FastQueue* mFastQueue;

@@ -7,7 +7,8 @@
 
 namespace FastQ::Idl {
 
-static constexpr size_t FASTQ_HEADER_SIZE = 41;
+static constexpr size_t FASTQ_HEADER_SIZE = 44;
+static constexpr size_t FASTQ_SIZE_WITHOUT_PAYLOAD = 44;
 static constexpr uint32_t FASTQ_MAJOR_VERSION = 1;
 static constexpr uint32_t FASTQ_MINOR_VERSION = 1;
 
@@ -19,7 +20,7 @@ struct Header
 	char mProtocolName[16] = FASTQ_PROTOCOL_NAME;
 	uint32_t mVersionMajor {FASTQ_MAJOR_VERSION};
 	uint32_t mVersionMinor {FASTQ_MINOR_VERSION};
-	uint8_t mMagicNumber {0};
+	uint32_t mMagicNumber {0};
 	uint32_t mItemSize {SizeT};
 	uint32_t mItemCount {CountT};
 	uint64_t mPayloadSize {SizeT * CountT};
@@ -32,6 +33,7 @@ struct FastQueue
 	Header<SizeT, CountT> mHeader;
 	uint8_t mPayload[sizeof(SizeT) * CountT];
 };
+static_assert(FASTQ_HEADER_SIZE == FASTQ_SIZE_WITHOUT_PAYLOAD);
 
 #pragma pack(pop)
 
