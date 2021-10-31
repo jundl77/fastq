@@ -2,9 +2,11 @@
 
 namespace FastQ
 {
-	struct MmapedFile
-	{
-		int mFd;
-		void* mAddr;
-	};
+
+struct MmapedFile
+{
+	int mFd;
+	void* mAddr;
+};
+
 }

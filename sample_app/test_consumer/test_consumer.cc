@@ -7,7 +7,7 @@ int main(int argc, const char** argv)
 {
 	LOG(INFO, LM_APP, "starting test consumer app");
 
-	FastQ::Consumer consumer {"../test.shm", 2};
+	FastQ::Consumer<10, 100> consumer {"../test.shm", 2};
 	consumer.Start();
 
 	while (true) { };
