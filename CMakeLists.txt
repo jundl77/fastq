@@ -12,4 +12,4 @@ add_subdirectory(${FLATBUFFERS_SRC_DIR} ${CMAKE_CURRENT_BINARY_DIR}/flatbuffers-
 add_subdirectory(idl)
 add_subdirectory(libs)
 add_subdirectory(unit_tests)
-add_subdirectory(sample_apps)
+add_subdirectory(sample_app)

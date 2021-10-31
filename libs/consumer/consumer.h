@@ -1,12 +1,21 @@
 #pragma once
 
+#include <string>
+
 namespace FastQ {
 
 class Consumer
 {
-	Consumer() = default;
+public:
+	Consumer(std::string shmFilename, int filesizeMb);
+	void Start();
 
-	void Consume();
+private:
+	int LoadMmappedFile(const std::string& shmFilename, int filesizeMb);
+
+	std::string mShmFilename;
+	int mFilesizeMb;
+	int mFd {0};
 };
 
 }

@@ -1,2 +1,0 @@
-add_subdirectory(test_consumer)
-add_subdirectory(test_producer)

@@ -3,10 +3,7 @@ set(TARGET_NAME consumer_lib)
 file(GLOB headers *.h)
 file(GLOB sources *.cc)
 
-set(sources
-        ${headers} ${sources})
-
-add_library(${TARGET_NAME} ${sources})
+add_library(${TARGET_NAME} ${headers} ${sources})
 target_link_libraries(${TARGET_NAME} PUBLIC
         fastq_idl)
 
