@@ -10,6 +10,10 @@ int main(int argc, const char** argv)
 	FastQ::Producer<10, 100> producer {"../test.shm", 10 * 100};
 	producer.Start();
 
-	while (true) { };
+	while (true)
+	{
+		producer.Poll_100ms();
+	};
+
 	return 1;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/mmap_file.h>
+#include <core/fastq_utils.h>
 #include <core/logger.h>
 #include <core/throw_if.h>
 #include <idl/fastq.h>
@@ -35,8 +36,12 @@ public:
 
 		std::memcpy(mFastQBuffer->GetAddress(), &queue, sizeof(queue));
 		mFastQueue = reinterpret_cast<FastQueue*>(mFastQBuffer->GetAddress());
-		LOG(INFO, LM_PRODUCER, "protocol name: " << mFastQueue->mHeader.mProtocolName)
-		LOG(INFO, LM_PRODUCER, "magic number: " << mFastQueue->mHeader.mMagicNumber);
+		LogFastQHeader<SizeT, CountT>(LM_PRODUCER, mFastQueue);
+	}
+
+	void Poll_100ms()
+	{
+		UpdateHeartbeat();
 	}
 
 	void Push(void* data, int size)
@@ -57,6 +62,11 @@ private:
 		FastQueue fastQueue {};
 		fastQueue.mHeader.mMagicNumber = dist(rng);
 		return fastQueue;
+	}
+
+	void UpdateHeartbeat()
+	{
+		mFastQueue->mHeader.mHeartbeatCount += 1;
 	}
 
 private:

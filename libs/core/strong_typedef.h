@@ -46,13 +46,13 @@ Stream& operator<<(Stream& stream, const StrongTypedef<T, Tag>& x)
 namespace std
 {
 
-	template <typename T, typename Tag>
-	struct hash<StrongTypedef<T, Tag>>
+template <typename T, typename Tag>
+struct hash<StrongTypedef<T, Tag>>
+{
+	std::size_t operator()(const StrongTypedef<T, Tag>& x) const
 	{
-		std::size_t operator()(const StrongTypedef<T, Tag>& x) const
-		{
-			return std::hash<T>{}(x.mValue);
-		}
-	};
+		return std::hash<T>{}(x.mValue);
+	}
+};
 
 }

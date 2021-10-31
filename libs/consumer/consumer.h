@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/mmap_file.h>
+#include <core/fastq_utils.h>
 #include <core/logger.h>
 #include <idl/fastq.h>
 #include <memory>
@@ -24,19 +25,13 @@ public:
 	{
 		LOG(INFO, LM_CONSUMER, "starting consumer")
 		mFastQBuffer = std::make_unique<MmappedFile>(mShmFilename);
-		mFastQBuffer->Mmap(TotalBufferSize(), MmapProtMode::READ_ONLY);
+		mFastQBuffer->Mmap(GetTotalFastQSize<SizeT, CountT>(), MmapProtMode::READ_ONLY);
 		mFastQueue = reinterpret_cast<FastQueue*>(mFastQBuffer->GetAddress());
-		LOG(INFO, LM_CONSUMER, "protocol name: " << mFastQueue->mHeader.mProtocolName);
-		LOG(INFO, LM_CONSUMER, "magic number: " << mFastQueue->mHeader.mMagicNumber);
+		LogFastQHeader<SizeT, CountT>(LM_CONSUMER, mFastQueue);
 	}
 
 private:
 	using FastQueue = Idl::FastQueue<SizeT, CountT>;
-
-	int TotalBufferSize()
-	{
-		return Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + SizeT * CountT;
-	}
 
 	std::string mShmFilename;
 	std::unique_ptr<MmappedFile> mFastQBuffer;
