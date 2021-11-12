@@ -6,6 +6,7 @@
 #include <string>
 #include <fstream>
 #include <sys/types.h>
+#include <sys/errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -73,6 +74,7 @@ void MmappedFile::Mmap(int size, MmapProtMode prot)
 	if (addr == MAP_FAILED)
 	{
 		close(mFd);
+		LOG(ERROR, LM_MMAP,  "error mmapping file, errno=" << std::strerror(errno) << " (" << errno << ")");
 		THROW_IF(true, "error mmapping file");
 	}
 

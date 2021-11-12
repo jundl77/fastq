@@ -28,9 +28,9 @@ private:
 	int MmapProtModeToOMode(MmapProtMode);
 
 	std::string mShmFilename;
-	int mFd;
+	int mFd {0};
 	void* mAddr;
-	int mMappedSize;
+	int mMappedSize {0};
 	bool mIsMapped {false};
 };
 
