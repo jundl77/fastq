@@ -8,4 +8,4 @@ target_link_libraries(${TARGET_NAME}
         consumer_lib
         core_lib)
 
-set_target_properties(${TARGET_NAME} PROPERTIES CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+target_include_directories(${TARGET_NAME} PUBLIC ..)

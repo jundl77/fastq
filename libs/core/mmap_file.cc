@@ -4,9 +4,7 @@
 #include <core/throw_if.h>
 
 #include <string>
-#include <fstream>
-#include <sys/types.h>
-#include <sys/errno.h>
+#include <cerrno>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -34,7 +32,7 @@ void MmappedFile::Create(int initialSize)
 	LOG(INFO, LM_MMAP, "creating " << mShmFilename << " with initial size of " << initialSize);
 
 	// open file
-	mFd = OpenFile(MmapProtMode::READ_WRITE);
+	mFd = ShmOpenFile(MmapProtMode::READ_WRITE);
 
 	// grow file to initial size
 	if (lseek(mFd, initialSize - 1, SEEK_SET) == -1)
@@ -66,16 +64,15 @@ void MmappedFile::Mmap(int size, MmapProtMode prot)
 	// make sure file exists
 	if (mFd == 0)
 	{
-		mFd = OpenFile(prot);
+		mFd = ShmOpenFile(prot);
 	}
 
 	// mmap the file
-	void* addr = mmap(NULL, size, MmapProtModeToProt(prot), MAP_SHARED, mFd, 0);
+	void* addr = mmap(NULL, size, MmapProtModeToProt(prot), MAP_SHARED | MAP_FILE, mFd, 0);
 	if (addr == MAP_FAILED)
 	{
-		close(mFd);
-		LOG(ERROR, LM_MMAP,  "error mmapping file, errno=" << std::strerror(errno) << " (" << errno << ")");
-		THROW_IF(true, "error mmapping file");
+		CloseFile();
+		THROW_IF(true, "error mmapping file, errno=" + std::string(std::strerror(errno)) + " (" + std::to_string(errno) + ")");
 	}
 
 	mAddr = addr;
@@ -89,13 +86,19 @@ void MmappedFile::Munmap()
 	THROW_IF(!mIsMapped, "cannot unmap shm file that is not mapped")
 	if (munmap(mAddr, mMappedSize) == -1)
 	{
-		close(mFd);
+		CloseFile();
 		THROW_IF(true, "error unmmapping file");
 	}
-	close(mFd);
+	CloseFile();
 	mAddr = NULL;
 	mMappedSize = 0;
 	mIsMapped = false;
+}
+
+void MmappedFile::CloseFile()
+{
+	close(mFd);
+	//shm_unlink(mShmFilename.c_str()); todo:fix
 }
 
 void* MmappedFile::GetAddress() const
@@ -104,10 +107,11 @@ void* MmappedFile::GetAddress() const
 	return mAddr;
 }
 
-int MmappedFile::OpenFile(MmapProtMode mode)
+int MmappedFile::ShmOpenFile(MmapProtMode mode)
 {
+	//todo: fix later to shm_open
 	int fd = open(mShmFilename.c_str(), MmapProtModeToOMode(mode), (mode_t)0600);
-	if (fd == -1)
+	if (-1 == fd)
 	{
 		THROW_IF(true, "shm file does not exist");
 	}

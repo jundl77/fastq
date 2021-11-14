@@ -1,5 +1,10 @@
 #include <producer/producer.h>
+#include <sample_idl/sample_idl.h>
 #include <core/logger.h>
+#include <chrono>
+
+using namespace FastQ;
+using namespace FastQ::SampleIdl;
 
 static const LogModule LM_APP {"FASTQ_TEST_APP"};
 
@@ -7,13 +12,31 @@ int main(int argc, const char** argv)
 {
 	LOG(INFO, LM_APP, "starting test producer app");
 
-	FastQ::Producer<10, 100> producer {"../test.shm", 10 * 100};
+	int size = 128 * 1000 + 128;
+	Producer<128, 1000> producer {"/tmp/test.shm", size};
 	producer.Start();
 
-	while (true)
+	SampleData data;
+	for (int i = 0; i < sizeof(data.mData); i++)
 	{
-		producer.Poll_100ms();
+		data.mData[i] = i;
+	}
+
+	LOG(INFO, LM_APP, "writing data..");
+
+	std::chrono::seconds duration(60);
+	auto start = std::chrono::steady_clock::now();
+
+	uint64_t writeCount = 0;
+	while (std::chrono::steady_clock::now() - start < duration)
+	{
+		data.mId = writeCount;
+		producer.Push(&data, sizeof(data));
+		writeCount++;
+		LOG(INFO, LM_APP, "wrote: " << writeCount);
 	};
+
+	LOG(INFO, LM_APP, "total write count: " << writeCount);
 
 	return 1;
 }

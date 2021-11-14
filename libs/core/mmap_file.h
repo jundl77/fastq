@@ -23,7 +23,9 @@ public:
 	void* GetAddress() const;
 
 private:
-	int OpenFile(MmapProtMode);
+	void CloseFile();
+
+	int ShmOpenFile(MmapProtMode);
 	int MmapProtModeToProt(MmapProtMode);
 	int MmapProtModeToOMode(MmapProtMode);
 

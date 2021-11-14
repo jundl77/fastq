@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/mmap_file.h>
-#include <core/fastq_utils.h>
+#include <core/fastq_core.h>
 #include <core/logger.h>
 #include <core/throw_if.h>
 #include <idl/fastq.h>
@@ -15,14 +15,17 @@ namespace {
 
 namespace FastQ {
 
-template<uint32_t SizeT, uint32_t CountT>
-class Producer
+template<uint32_t FrameSizeT>
+class Producer : public FastQCore<FrameSizeT>
 {
 public:
-	Producer(std::string shmFilename, int filesize)
-		: mShmFilename(std::move(shmFilename))
-		, mFilesize(filesize)
-	{}
+	Producer(std::string shmFilename, int payloadSize)
+		: FastQCore(LM_PRODUCER)
+		, mShmFilename(std::move(shmFilename))
+		, mPayloadSize(payloadSize)
+		, mFilesize(Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + mPayloadSize)
+	{
+	}
 
 	void Start()
 	{
@@ -36,7 +39,7 @@ public:
 
 		std::memcpy(mFastQBuffer->GetAddress(), &queue, sizeof(queue));
 		mFastQueue = reinterpret_cast<FastQueue*>(mFastQBuffer->GetAddress());
-		LogFastQHeader<SizeT, CountT>(LM_PRODUCER, mFastQueue);
+		FastQCore::Init(mFastQueue);
 	}
 
 	void Poll_100ms()
@@ -46,34 +49,41 @@ public:
 
 	void Push(void* data, int size)
 	{
+		// dont increment until after we wrote to the queue
+		const uint32_t nextIndex = FastQCore::NextFrameIndex(mFastQueue->mLastWriteIndex);
+		const uint32_t writeAddr = FastQCore::GetOffset(nextIndex);
+		std::memcpy(mFastQueue->mPayload + writeAddr, data, size);
 
+		// increment now
+		mFastQueue->mLastWriteIndex = nextIndex;
+		if (mFastQueue->mLastWriteIndex == 0)
+			mFastQueue->mWrapAroundCount++;
 	}
 
 private:
-	using FastQueue = Idl::FastQueue<SizeT, CountT>;
-
-	FastQueue CreateQueue() const
+	Idl::FastQueue<FrameSizeT> CreateQueue() const
 	{
-		THROW_IF(mFilesize < SizeT * CountT, "total filesize is smaller than item_size * item_count");
+		const uint32_t maxFrameCount = (uint32_t) (mPayloadSize) / FrameSizeT;
 		std::random_device randomDevice;
 		std::mt19937 rng(randomDevice());
 		std::uniform_int_distribution<std::mt19937::result_type> dist(1, std::numeric_limits<uint32_t>::max());
-
-		FastQueue fastQueue {};
-		fastQueue.mHeader.mMagicNumber = dist(rng);
-		return fastQueue;
+		LOG(INFO, LM_PRODUCER, "creating fastq with max frame count: " << maxFrameCount)
+		return Idl::FastQueue<FrameSizeT>{dist(rng), maxFrameCount};
 	}
 
 	void UpdateHeartbeat()
 	{
-		mFastQueue->mHeader.mHeartbeatCount += 1;
+		mFastQueue->mHeartbeatCount += 1;
 	}
 
 private:
+	using FastQCore = FastQCore<FrameSizeT>;
+	using FastQueue = Idl::FastQueue<FrameSizeT>;
+
 	std::string mShmFilename;
+	int mPayloadSize;
 	int mFilesize;
 	std::unique_ptr<MmappedFile> mFastQBuffer;
-
 	FastQueue* mFastQueue;
 };
 

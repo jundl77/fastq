@@ -3,6 +3,7 @@
 #include "strong_typedef.h"
 #include <stdexcept>
 #include <iostream>
+#include <cstdio>
 #include <chrono>
 
 #define DEBUG 0
