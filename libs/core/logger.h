@@ -50,23 +50,31 @@ inline decltype(auto) GetLocalTime()
 	return result;
 }
 
-#define LOG(level, module, message) \
+#define LOG(level, module, ...) \
 	do \
 	{ \
 		if (level == DEBUG && GLOBAL_LOG_LEVEL == DEBUG) \
 		{ \
-			std::cout << GetLocalTime() << " [Debug ] [" << module << "] " << message << std::endl; \
+			std::cout << GetLocalTime() << " [Debug ] [" << module << "] "; \
+			std::printf(__VA_ARGS__); \
+			std::cout << std::endl; \
 		} \
 		else if (level == INFO) \
 		{ \
-			std::cout << GetLocalTime() << " [Info ] [" << module << "] " << message << std::endl; \
+			std::cout << GetLocalTime() << " [Info ] [" << module << "] "; \
+			std::printf(__VA_ARGS__); \
+			std::cout << std::endl; \
 		} \
 		else if (level == WARN) \
 		{ \
-			std::cout << GetLocalTime() << " [Warn ] [" << module << "] " << message << std::endl; \
+			std::cout << GetLocalTime() << " [Warn ] [" << module << "] "; \
+			std::printf(__VA_ARGS__); \
+			std::cout << std::endl; \
 		} \
 		else if (level == ERROR) \
 		{ \
-			std::cout << GetLocalTime() << " [Error ] [" << module << "] " << message << std::endl; \
+			std::cout << GetLocalTime() << " [Error ] [" << module << "] "; \
+			std::printf(__VA_ARGS__); \
+			std::cout << std::endl; \
 		} \
 	} while(false);

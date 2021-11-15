@@ -29,37 +29,22 @@ MmappedFile::~MmappedFile()
 void MmappedFile::Create(int initialSize)
 {
 	THROW_IF(mIsMapped, "cannot create a new shm file while there is already a file mapped")
-	LOG(INFO, LM_MMAP, "creating " << mShmFilename << " with initial size of " << initialSize);
+	LOG(INFO, LM_MMAP, "creating %s with initial size of %d", mShmFilename.c_str(), initialSize);
 
 	// open file
 	mFd = ShmOpenFile(MmapProtMode::READ_WRITE);
 
 	// grow file to initial size
-	if (lseek(mFd, initialSize - 1, SEEK_SET) == -1)
+	if (-1 == ftruncate(mFd, initialSize))
 	{
-		close(mFd);
-		THROW_IF(true, "error calling lseek() to grow file to initial size");
-	}
-
-	// write zero-byte at end of file to make file take on new size
-	if (write(mFd, "", 1) != 1)
-	{
-		close(mFd);
-		THROW_IF(true, "error writing last byte of the file");
-	}
-
-	// reset seek to 0
-	if (lseek(mFd, 0, SEEK_SET) == -1)
-	{
-		close(mFd);
-		THROW_IF(true, "error calling lseek() to reset seek to 0");
+		THROW_IF(mIsMapped, "unable to grow file to specified size: %d", initialSize)
 	}
 }
 
 void MmappedFile::Mmap(int size, MmapProtMode prot)
 {
 	THROW_IF(mIsMapped, "cannot map shm file, file is already mapped")
-	LOG(INFO, LM_MMAP, "mapping " << mShmFilename << " to memory with size " << size);
+	LOG(INFO, LM_MMAP, "mapping %s to memory with size %d", mShmFilename.c_str(), size);
 
 	// make sure file exists
 	if (mFd == 0)
@@ -68,17 +53,17 @@ void MmappedFile::Mmap(int size, MmapProtMode prot)
 	}
 
 	// mmap the file
-	void* addr = mmap(NULL, size, MmapProtModeToProt(prot), MAP_SHARED | MAP_FILE, mFd, 0);
+	void* addr = mmap(NULL, size, MmapProtModeToProt(prot), MAP_SHARED, mFd, 0);
 	if (addr == MAP_FAILED)
 	{
 		CloseFile();
-		THROW_IF(true, "error mmapping file, errno=" + std::string(std::strerror(errno)) + " (" + std::to_string(errno) + ")");
+		THROW_IF(true, "error mmapping file, errno=%s (%d)", std::strerror(errno), errno);
 	}
 
 	mAddr = addr;
 	mMappedSize = size;
 	mIsMapped = true;
-	LOG(INFO, LM_MMAP, "mapped " << mShmFilename << " to memory successfully");
+	LOG(INFO, LM_MMAP, "mapped %s to memory successfully", mShmFilename.c_str());
 }
 
 void MmappedFile::Munmap()
@@ -98,7 +83,7 @@ void MmappedFile::Munmap()
 void MmappedFile::CloseFile()
 {
 	close(mFd);
-	//shm_unlink(mShmFilename.c_str()); todo:fix
+	shm_unlink(mShmFilename.c_str());
 }
 
 void* MmappedFile::GetAddress() const
@@ -109,8 +94,7 @@ void* MmappedFile::GetAddress() const
 
 int MmappedFile::ShmOpenFile(MmapProtMode mode)
 {
-	//todo: fix later to shm_open
-	int fd = open(mShmFilename.c_str(), MmapProtModeToOMode(mode), (mode_t)0600);
+	int fd = shm_open(mShmFilename.c_str(), MmapProtModeToOMode(mode), (mode_t)0600);
 	if (-1 == fd)
 	{
 		THROW_IF(true, "shm file does not exist");
@@ -136,7 +120,7 @@ int MmappedFile::MmapProtModeToOMode(MmapProtMode mode)
 	switch (mode)
 	{
 	case MmapProtMode::READ_WRITE:
-		return O_RDWR | O_CREAT | O_TRUNC;
+		return O_RDWR | O_CREAT;
 	case MmapProtMode::READ_ONLY:
 		return O_RDONLY;
 	default:

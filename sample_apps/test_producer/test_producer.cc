@@ -12,8 +12,8 @@ int main(int argc, const char** argv)
 {
 	LOG(INFO, LM_APP, "starting test producer app");
 
-	int size = 128 * 1000 + 128;
-	Producer<128, 1000> producer {"/tmp/test.shm", size};
+	int size = 128 * 10;
+	Producer producer {"test.shm", size};
 	producer.Start();
 
 	SampleData data;
@@ -33,10 +33,10 @@ int main(int argc, const char** argv)
 		data.mId = writeCount;
 		producer.Push(&data, sizeof(data));
 		writeCount++;
-		LOG(INFO, LM_APP, "wrote: " << writeCount);
-	};
+		LOG(INFO, LM_APP, "wrote: %llu", writeCount);
+	}
 
-	LOG(INFO, LM_APP, "total write count: " << writeCount);
+	LOG(INFO, LM_APP, "total write count: %llu", writeCount);
 
 	return 1;
 }

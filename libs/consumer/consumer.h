@@ -52,7 +52,7 @@ public:
 		}
 
 		uint32_t readOffset = FastQCore::GetOffset(mLastReadIndex);
-		std::memcpy(data, mFastQueue->mPayload + readOffset, mMaxFrameCount);
+		std::memcpy(data, &mFastQueue->mPayload + readOffset, mMaxFrameCount);
 		mLastReadIndex = FastQCore::NextFrameIndex(mLastReadIndex);
 		if (mLastReadIndex == 0)
 		{
