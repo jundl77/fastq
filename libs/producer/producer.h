@@ -19,16 +19,16 @@ public:
 	void Start();
 	void Poll_100ms();
 
-	void Push(void* data, int size);
+	void Push(uint32_t type, void* data, uint32_t size);
 
 private:
 	Idl::FastQueue CreateQueue() const;
 	void UpdateHeartbeat();
+	uint32_t WriteData(uint32_t lastWritePosition, void* data, uint32_t size);
 
 private:
 	std::string mShmFilename;
-	int mFilesize;
-	uint64_t mPayloadSize;
+	uint32_t mFileSize;
 	std::unique_ptr<MmappedFile> mFastQBuffer;
 	Idl::FastQueue* mFastQueue;
 };

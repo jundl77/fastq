@@ -16,20 +16,21 @@ protected:
 
 	void Init(Idl::FastQueue* fastQueue);
 	void LogFastQHeader() const;
-	int GetTotalFastQSize() const;
+	uint8_t* GetPayloadPointer() const { return mPayload; };
 
-	inline uint64_t NextFramePosition(uint32_t lastWritePosition, int sizeToWrite) const
+	inline uint32_t NextFramePosition(uint32_t lastPosition, int size) const
 	{
-		uint64_t nextPosition = 0;
-		if (lastWritePosition + sizeToWrite < mPayloadSize)
-			nextPosition = lastWritePosition + sizeToWrite;
+		uint32_t nextPosition = 0;
+		if (lastPosition + size < mPayloadSize)
+			nextPosition = lastPosition + size;
 		return nextPosition;
 	}
 
-protected:
+private:
 	const LogModule& mLogModule;
 	Idl::FastQueue* mFastQueue;
-	uint64_t mPayloadSize {0};
+	uint32_t mPayloadSize {0};
+	uint8_t* mPayload {nullptr};
 };
 
 }

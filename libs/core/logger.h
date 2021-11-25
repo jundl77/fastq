@@ -78,3 +78,9 @@ inline decltype(auto) GetLocalTime()
 			std::cout << std::endl; \
 		} \
 	} while(false);
+
+#ifdef DEBUG
+	#define DEBUG_LOG(level, module, ...) { LOG(level, module, __VA_ARGS__) }
+#else
+	#define DEBUG_LOG(level, module, ...) {}
+#endif

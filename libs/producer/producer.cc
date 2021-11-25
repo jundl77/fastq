@@ -9,8 +9,7 @@ const LogModule LM_PRODUCER {"FASTQ_PRODUCER"};
 Producer::Producer(std::string shmFilename, int fileSize)
 	: FastQCore(LM_PRODUCER)
 	, mShmFilename(std::move(shmFilename))
-	, mFilesize(fileSize)
-	, mPayloadSize(mFilesize - Idl::FASTQ_SIZE_WITHOUT_PAYLOAD)
+	, mFileSize(fileSize)
 {
 }
 
@@ -21,10 +20,10 @@ void Producer::Start()
 	Idl::FastQueue queue = CreateQueue();
 
 	mFastQBuffer = std::make_unique<MmappedFile>(mShmFilename);
-	mFastQBuffer->Create(mFilesize);
-	mFastQBuffer->Mmap(mFilesize, MmapProtMode::READ_WRITE);
+	mFastQBuffer->Create(mFileSize);
+	mFastQBuffer->Mmap(mFileSize, MmapProtMode::READ_WRITE);
 
-	std::memset(mFastQBuffer->GetAddress(), 0, mFilesize);
+	std::memset(mFastQBuffer->GetAddress(), 0, mFileSize);
 	std::memcpy(mFastQBuffer->GetAddress(), &queue, sizeof(queue));
 	mFastQueue = reinterpret_cast<Idl::FastQueue*>(mFastQBuffer->GetAddress());
 	FastQCore::Init(mFastQueue);
@@ -35,20 +34,33 @@ void Producer::Poll_100ms()
 	UpdateHeartbeat();
 }
 
-void Producer::Push(void* data, int size)
+void Producer::Push(uint32_t type, void* data, uint32_t size)
 {
-	// dont increment until after we wrote to the queue
-	const uint64_t endAddr = FastQCore::NextFramePosition(mFastQueue->mLastWritePosition, size);
-	uint8_t* writeAddr = mFastQueue->mPayload + (endAddr - size);
-	if (endAddr == 0)
+	// dont increment until after we wrote to the queue both times
+	const Idl::FramingHeader frame {type, size};
+	const auto writePositionAfterFrame = WriteData(mFastQueue->mLastWritePosition, (void*)&frame, Idl::FASTQ_FRAMING_HEADER_SIZE);
+	const auto lastWritePosition = WriteData(writePositionAfterFrame, data, size);
+
+	// update now
+	mFastQueue->mLastWritePosition = lastWritePosition;
+}
+
+uint32_t Producer::WriteData(uint32_t lastWritePosition, void* data, uint32_t size)
+{
+	uint8_t* payload = GetPayloadPointer();
+	const auto endWritePosition = FastQCore::NextFramePosition(lastWritePosition, size);
+
+	// if we have wrapped around, set writeAddr to the start of the payload again, otherwise keep going
+	uint8_t* writeAddr = payload + (endWritePosition - size);
+	if (endWritePosition == 0)
 	{
 		mFastQueue->mWrapAroundCount++;
-		writeAddr = mFastQueue->mPayload;
+		writeAddr = payload;
+		DEBUG_LOG(INFO, LM_PRODUCER, "producer wrapper around, wrap-around counter: %d", mFastQueue->mWrapAroundCount)
 	}
-	std::memcpy(writeAddr, data, size);
 
-	// increment now
-	mFastQueue->mLastWritePosition = endAddr;
+	std::memcpy(writeAddr, data, size);
+	return endWritePosition;
 }
 
 Idl::FastQueue Producer::CreateQueue() const
@@ -56,7 +68,7 @@ Idl::FastQueue Producer::CreateQueue() const
 	std::random_device randomDevice;
 	std::mt19937 rng(randomDevice());
 	std::uniform_int_distribution<std::mt19937::result_type> dist(1, std::numeric_limits<uint32_t>::max());
-	return Idl::FastQueue{dist(rng), mPayloadSize};
+	return Idl::FastQueue{dist(rng), mFileSize};
 }
 
 void Producer::UpdateHeartbeat()

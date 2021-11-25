@@ -23,6 +23,7 @@ MmappedFile::~MmappedFile()
 	if (mIsMapped)
 	{
 		Munmap();
+		CloseFile();
 	}
 }
 
@@ -74,7 +75,6 @@ void MmappedFile::Munmap()
 		CloseFile();
 		THROW_IF(true, "error unmmapping file");
 	}
-	CloseFile();
 	mAddr = NULL;
 	mMappedSize = 0;
 	mIsMapped = false;
