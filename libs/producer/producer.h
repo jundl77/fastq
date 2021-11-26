@@ -31,6 +31,8 @@ private:
 	uint32_t mFileSize;
 	std::unique_ptr<MmappedFile> mFastQBuffer;
 	Idl::FastQueue* mFastQueue;
+	uint32_t mLastWritePosition {0};
+	uint32_t mWrapAroundCounter {0};
 };
 
 }

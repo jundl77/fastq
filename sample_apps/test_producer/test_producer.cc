@@ -14,7 +14,7 @@ int main(int argc, const char** argv)
 {
 	LOG(INFO, LM_APP, "starting test producer app");
 
-	int size = 1024 * 1024;
+	int size = 1024 * 1024 * 10;
 	Producer producer {"test.shm", size};
 	producer.Start();
 
@@ -36,7 +36,7 @@ int main(int argc, const char** argv)
 		producer.Push(1, &data, sizeof(data));
 		writeCount++;
 		LOG(INFO, LM_APP, "wrote: %llu", writeCount);
-		//std::this_thread::sleep_for(1s);
+		//std::this_thread::sleep_for(1ms);
 	}
 
 	LOG(INFO, LM_APP, "total write count: %llu", writeCount);

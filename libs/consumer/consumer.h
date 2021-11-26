@@ -28,7 +28,7 @@ public:
 
 private:
 	uint32_t ReadData(uint32_t lastReadPosition, void* data, uint32_t size);
-	bool AssertInSync();
+	void AssertInSync();
 	void ValidateHeader();
 
 private:
@@ -40,8 +40,8 @@ private:
 	std::vector<uint8_t> mCurrentReadBuffer;
 	uint32_t mFileSize {0};
 	uint32_t mPayloadSize {0};
-	int32_t mWrapAroundCount {0};
-	int32_t mLastReadPosition {0};
+	uint32_t mWrapAroundCount {0};
+	uint32_t mLastReadPosition {0};
 };
 
 }

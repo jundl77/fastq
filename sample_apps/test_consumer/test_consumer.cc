@@ -27,7 +27,7 @@ public:
 		mReadCount++;
 	}
 
-	int mReadCount {0};
+	u_int32_t mReadCount {0};
 };
 
 int main(int argc, const char** argv)

@@ -38,11 +38,12 @@ void Producer::Push(uint32_t type, void* data, uint32_t size)
 {
 	// dont increment until after we wrote to the queue both times
 	const Idl::FramingHeader frame {type, size};
-	const auto writePositionAfterFrame = WriteData(mFastQueue->mLastWritePosition, (void*)&frame, Idl::FASTQ_FRAMING_HEADER_SIZE);
+	const auto writePositionAfterFrame = WriteData(mLastWritePosition, (void*)&frame, Idl::FASTQ_FRAMING_HEADER_SIZE);
 	const auto lastWritePosition = WriteData(writePositionAfterFrame, data, size);
 
 	// update now
-	mFastQueue->mLastWritePosition = lastWritePosition;
+	mLastWritePosition = lastWritePosition;
+	mFastQueue->mLastWriteInfo = CreateLastWriteInfo(mLastWritePosition, mWrapAroundCounter); // atomic write
 }
 
 uint32_t Producer::WriteData(uint32_t lastWritePosition, void* data, uint32_t size)
@@ -54,9 +55,9 @@ uint32_t Producer::WriteData(uint32_t lastWritePosition, void* data, uint32_t si
 	uint8_t* writeAddr = payload + (endWritePosition - size);
 	if (endWritePosition == 0)
 	{
-		mFastQueue->mWrapAroundCount++;
+		mWrapAroundCounter++;
 		writeAddr = payload;
-		DEBUG_LOG(INFO, LM_PRODUCER, "producer wrapper around, wrap-around counter: %d", mFastQueue->mWrapAroundCount)
+		DEBUG_LOG(INFO, LM_PRODUCER, "producer wrapper around, wrap-around counter: %d", mWrapAroundCounter)
 	}
 
 	std::memcpy(writeAddr, data, size);

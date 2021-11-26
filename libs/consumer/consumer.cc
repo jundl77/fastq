@@ -9,7 +9,7 @@ Consumer::Consumer(std::string shmFilename, IFastQHandler& handler)
 	, mShmFilename(std::move(shmFilename))
 	, mHandler(handler)
 {
-	mCurrentReadBuffer.reserve(1024 * 1024 * 100); // 10mb
+	mCurrentReadBuffer.reserve(1024 * 1024 * 10); // 10mb
 }
 
 void Consumer::Start()
@@ -29,8 +29,9 @@ void Consumer::Start()
 	mFastQBuffer->Mmap(mFileSize, MmapProtMode::READ_ONLY);
 
 	FastQCore::Init(mFastQueue);
-	mWrapAroundCount = mFastQueue->mWrapAroundCount;
-	mLastReadPosition = mFastQueue->mLastWritePosition;
+	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo;
+	mWrapAroundCount = GetWrapAroundCount(lastWriteInfo);
+	mLastReadPosition = GetLastWritePosition(lastWriteInfo);
 	LOG(INFO, LM_CONSUMER, "position in queue:")
 	LOG(INFO, LM_CONSUMER, "  wrap around count:  %d", mWrapAroundCount)
 	LOG(INFO, LM_CONSUMER, "  last read position: %d", mLastReadPosition)
@@ -38,11 +39,16 @@ void Consumer::Start()
 
 bool Consumer::Poll()
 {
-	uint8_t* payload = GetPayloadPointer();
-	if (mLastReadPosition == mFastQueue->mLastWritePosition && mWrapAroundCount == mFastQueue->mWrapAroundCount)
+	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo;
+	const uint32_t queueWrapAround = GetWrapAroundCount(lastWriteInfo);
+	const uint32_t queueLastWritePosition = GetLastWritePosition(lastWriteInfo);
+	if (mLastReadPosition == queueLastWritePosition && mWrapAroundCount == queueWrapAround)
 	{
 		return false;
 	}
+	DEBUG_THROW_IF(mWrapAroundCount > queueWrapAround, "wrap count of reader is ahead of that of writer, is there a race condition?");
+	DEBUG_THROW_IF(mLastReadPosition > queueLastWritePosition && mWrapAroundCount >= queueWrapAround,
+				"reader is ahead of writer, is there a race condition?");
 
 	// no need to check for in-sync at start, because if we are not, we will:
 	// - either read a garbage header with an invalid size, in which case we throw
@@ -58,7 +64,7 @@ bool Consumer::Poll()
 	{
 		mCurrentReadBuffer.reserve(framingHeader.mSize);
 	}
-	DEBUG_ASSERT(mCurrentReadBuffer.capacity() < framingHeader.mSize, "weird");
+	DEBUG_THROW_IF(mCurrentReadBuffer.capacity() < framingHeader.mSize, "read buffer is too small");
 	mLastReadPosition = ReadData(mLastReadPosition, mCurrentReadBuffer.data(), framingHeader.mSize);
 
 	// check after copying the data into the read buffer to make sure we have not been overtaken by the producer
@@ -85,15 +91,17 @@ uint32_t Consumer::ReadData(uint32_t lastReadPosition, void* data, uint32_t size
 	return endReadPosition;
 }
 
-bool Consumer::AssertInSync()
+void Consumer::AssertInSync()
 {
-//	const int wrapAroundOffset = std::abs(mFastQueue->mWrapAroundCount - mWrapAroundCount) * mMaxFrameCount;
-//	const int indexBehindCount = std::abs(mFastQueue->mLastWriteIndex + wrapAroundOffset - mLastReadIndex);
-//	const double percentBehind = (indexBehindCount * 1.0) / mMaxFrameCount;
-//	if (indexBehindCount >= 100 && percentBehind > MAX_PERCENT_BEHIND)
-//	{
-//		THROW_IF(true, "consumer fell behind by " + std::to_string(percentBehind * 100) + "% capacity  which is more than max (" + std::to_string(MAX_PERCENT_BEHIND * 100) +"%)");
-//	}
+	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo;
+	const uint32_t queueWrapAround = GetWrapAroundCount(lastWriteInfo);
+	const uint32_t queueLastWritePosition = GetLastWritePosition(lastWriteInfo);
+
+	DEBUG_THROW_IF(mWrapAroundCount > queueWrapAround, "wrap count of reader is ahead of that of writer, is there a race condition?");
+	DEBUG_THROW_IF(mLastReadPosition > queueLastWritePosition && mWrapAroundCount >= queueWrapAround,
+				   "reader is ahead of writer, is there a race condition?");
+	const uint32_t sizeBehind = (queueWrapAround - mWrapAroundCount) * mPayloadSize + (queueLastWritePosition - mLastReadPosition);
+	THROW_IF(sizeBehind >= mPayloadSize, "reader was too slow, writer looped around and overwrote reader");
 }
 
 void Consumer::ValidateHeader()

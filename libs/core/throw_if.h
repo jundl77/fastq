@@ -15,7 +15,7 @@
 	} while(false);
 
 #ifdef DEBUG
-	#define DEBUG_ASSERT(cond, ...) { THROW_IF(cond, __VA_ARGS__) }
+	#define DEBUG_THROW_IF(cond, ...) { THROW_IF(cond, __VA_ARGS__) }
 #else
-	#define DEBUG_ASSERT(cond, ...) {}
+	#define DEBUG_THROW_IF(cond, ...) {}
 #endif
