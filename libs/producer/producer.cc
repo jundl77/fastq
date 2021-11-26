@@ -29,11 +29,6 @@ void Producer::Start()
 	FastQCore::Init(mFastQueue);
 }
 
-void Producer::Poll_100ms()
-{
-	UpdateHeartbeat();
-}
-
 void Producer::Push(uint32_t type, void* data, uint32_t size)
 {
 	// dont increment until after we wrote to the queue both times
@@ -43,7 +38,7 @@ void Producer::Push(uint32_t type, void* data, uint32_t size)
 
 	// update now
 	mLastWritePosition = lastWritePosition;
-	mFastQueue->mLastWriteInfo = CreateLastWriteInfo(mLastWritePosition, mWrapAroundCounter); // atomic write
+	mFastQueue->mLastWriteInfo.store(CreateLastWriteInfo(mLastWritePosition, mWrapAroundCounter));
 }
 
 uint32_t Producer::WriteData(uint32_t lastWritePosition, void* data, uint32_t size)
@@ -70,11 +65,6 @@ Idl::FastQueue Producer::CreateQueue() const
 	std::mt19937 rng(randomDevice());
 	std::uniform_int_distribution<std::mt19937::result_type> dist(1, std::numeric_limits<uint32_t>::max());
 	return Idl::FastQueue{dist(rng), mFileSize};
-}
-
-void Producer::UpdateHeartbeat()
-{
-	mFastQueue->mHeartbeatCount += 1;
 }
 
 }

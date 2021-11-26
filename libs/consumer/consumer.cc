@@ -29,7 +29,7 @@ void Consumer::Start()
 	mFastQBuffer->Mmap(mFileSize, MmapProtMode::READ_ONLY);
 
 	FastQCore::Init(mFastQueue);
-	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo;
+	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo.load();
 	mWrapAroundCount = GetWrapAroundCount(lastWriteInfo);
 	mLastReadPosition = GetLastWritePosition(lastWriteInfo);
 	LOG(INFO, LM_CONSUMER, "position in queue:")
@@ -39,7 +39,7 @@ void Consumer::Start()
 
 bool Consumer::Poll()
 {
-	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo;
+	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo.load();
 	const uint32_t queueWrapAround = GetWrapAroundCount(lastWriteInfo);
 	const uint32_t queueLastWritePosition = GetLastWritePosition(lastWriteInfo);
 	if (mLastReadPosition == queueLastWritePosition && mWrapAroundCount == queueWrapAround)
@@ -93,7 +93,7 @@ uint32_t Consumer::ReadData(uint32_t lastReadPosition, void* data, uint32_t size
 
 void Consumer::AssertInSync()
 {
-	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo;
+	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo.load();
 	const uint32_t queueWrapAround = GetWrapAroundCount(lastWriteInfo);
 	const uint32_t queueLastWritePosition = GetLastWritePosition(lastWriteInfo);
 

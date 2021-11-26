@@ -17,13 +17,11 @@ public:
 	Producer(std::string shmFilename, int fileSize);
 
 	void Start();
-	void Poll_100ms();
 
 	void Push(uint32_t type, void* data, uint32_t size);
 
 private:
 	Idl::FastQueue CreateQueue() const;
-	void UpdateHeartbeat();
 	uint32_t WriteData(uint32_t lastWritePosition, void* data, uint32_t size);
 
 private:

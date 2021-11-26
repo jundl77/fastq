@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <atomic>
 
 #define FASTQ_PROTOCOL_NAME "fastq_protocol"
 
@@ -9,7 +10,7 @@ namespace FastQ::Idl {
 
 static constexpr size_t FASTQ_FRAMING_HEADER_SIZE = 8;
 static constexpr size_t FASTQ_HEADER_SIZE = 40;
-static constexpr size_t FASTQ_SIZE_WITHOUT_PAYLOAD = FASTQ_HEADER_SIZE + 16;
+static constexpr size_t FASTQ_SIZE_WITHOUT_PAYLOAD = 64;
 static constexpr uint32_t FASTQ_MAJOR_VERSION = 1;
 static constexpr uint32_t FASTQ_MINOR_VERSION = 1;
 
@@ -53,8 +54,12 @@ struct FastQueue
 	{}
 
 	const Header mHeader;
-	uint64_t mHeartbeatCount {0};
-	uint64_t mLastWriteInfo {0}; // bits 0-31 contain last write location, bits 32-64 contain wrap around count
+	uint64_t mPadding1;
+	uint64_t mPadding2;
+
+	// bits 0-31 contain last write location, bits 32-28 contain wrap around count
+	std::atomic<std::uint64_t> mLastWriteInfo {0};
+
 	// data is here
 };
 static_assert(sizeof(FastQueue) == FASTQ_SIZE_WITHOUT_PAYLOAD);

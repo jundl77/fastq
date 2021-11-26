@@ -14,7 +14,7 @@ int main(int argc, const char** argv)
 {
 	LOG(INFO, LM_APP, "starting test producer app");
 
-	int size = 1024 * 1024 * 10;
+	int size = 1024 * 1024 * 100;
 	Producer producer {"test.shm", size};
 	producer.Start();
 
