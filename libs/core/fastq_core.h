@@ -21,7 +21,7 @@ protected:
 	inline uint32_t NextFramePosition(uint32_t lastPosition, int size) const
 	{
 		uint32_t nextPosition = 0;
-		if (lastPosition + size < mPayloadSize)
+		if (lastPosition + size <= mPayloadSize)
 			nextPosition = lastPosition + size;
 		return nextPosition;
 	}

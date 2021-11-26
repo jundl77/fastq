@@ -11,17 +11,17 @@
 
 namespace FastQ {
 
-class FastQHandler
+class IFastQHandler
 {
 public:
-	virtual ~FastQHandler() = default;
+	virtual ~IFastQHandler() = default;
 	virtual void OnData(u_int32_t type, void* data, u_int32_t size) = 0;
 };
 
 class Consumer : public FastQCore
 {
 public:
-	Consumer(std::string shmFilename, FastQHandler&);
+	Consumer(std::string shmFilename, IFastQHandler&);
 
 	void Start();
 	bool Poll();
@@ -33,7 +33,7 @@ private:
 
 private:
 	std::string mShmFilename;
-	FastQHandler& mHandler;
+	IFastQHandler& mHandler;
 	std::unique_ptr<MmappedFile> mFastQBuffer;
 
 	Idl::FastQueue* mFastQueue;

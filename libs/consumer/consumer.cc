@@ -4,12 +4,12 @@ namespace FastQ {
 
 static const LogModule LM_CONSUMER {"FASTQ_CONSUMER"};
 
-Consumer::Consumer(std::string shmFilename, FastQHandler& handler)
+Consumer::Consumer(std::string shmFilename, IFastQHandler& handler)
 	: FastQCore(LM_CONSUMER)
 	, mShmFilename(std::move(shmFilename))
 	, mHandler(handler)
 {
-	mCurrentReadBuffer.reserve(1024 * 1024 * 10); // 10mb
+	mCurrentReadBuffer.reserve(1024 * 1024 * 100); // 10mb
 }
 
 void Consumer::Start()
@@ -39,7 +39,7 @@ void Consumer::Start()
 bool Consumer::Poll()
 {
 	uint8_t* payload = GetPayloadPointer();
-	if (mLastReadPosition == mFastQueue->mLastWritePosition)
+	if (mLastReadPosition == mFastQueue->mLastWritePosition && mWrapAroundCount == mFastQueue->mWrapAroundCount)
 	{
 		return false;
 	}

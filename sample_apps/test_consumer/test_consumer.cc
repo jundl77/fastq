@@ -8,7 +8,7 @@ using namespace FastQ::SampleIdl;
 
 static const LogModule LM_APP {"FASTQ_TEST_APP"};
 
-class Handler : public FastQHandler
+class Handler : public IFastQHandler
 {
 public:
 	void OnData(u_int32_t type, void* data, u_int32_t size)

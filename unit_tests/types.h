@@ -9,6 +9,7 @@ namespace FastQ::Testing {
 
 struct SimpleFoo
 {
+	uint32_t mType {1};
 	uint32_t mFoo1 {0};
 	uint32_t mFoo2 {0};
 	uint32_t mFoo3 {0};
