@@ -44,18 +44,21 @@ void Producer::Push(uint32_t type, void* data, uint32_t size)
 uint32_t Producer::WriteData(uint32_t lastWritePosition, void* data, uint32_t size)
 {
 	uint8_t* payload = GetPayloadPointer();
-	const auto endWritePosition = FastQCore::NextFramePosition(lastWritePosition, size);
+	uint32_t endWritePosition = FastQCore::NextFramePosition(lastWritePosition, size);
 
 	// if we have wrapped around, set writeAddr to the start of the payload again, otherwise keep going
 	uint8_t* writeAddr = payload + (endWritePosition - size);
 	if (endWritePosition == 0)
 	{
 		mWrapAroundCounter++;
+		endWritePosition = size;
 		writeAddr = payload;
 		DEBUG_LOG(INFO, LM_PRODUCER, "producer wrapper around, wrap-around counter: %d", mWrapAroundCounter)
 	}
 
 	std::memcpy(writeAddr, data, size);
+	DEBUG_LOG(INFO, LM_PRODUCER, "[producer state] last write position %d, wrap-around counter: %d",
+			  endWritePosition, mWrapAroundCounter)
 	return endWritePosition;
 }
 

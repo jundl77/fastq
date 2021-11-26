@@ -30,10 +30,10 @@ void Consumer::Start()
 
 	FastQCore::Init(mFastQueue);
 	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo.load();
-	mWrapAroundCount = GetWrapAroundCount(lastWriteInfo);
+	mWrapAroundCounter = GetWrapAroundCount(lastWriteInfo);
 	mLastReadPosition = GetLastWritePosition(lastWriteInfo);
 	LOG(INFO, LM_CONSUMER, "position in queue:")
-	LOG(INFO, LM_CONSUMER, "  wrap around count:  %d", mWrapAroundCount)
+	LOG(INFO, LM_CONSUMER, "  wrap around count:  %d", mWrapAroundCounter)
 	LOG(INFO, LM_CONSUMER, "  last read position: %d", mLastReadPosition)
 }
 
@@ -42,12 +42,12 @@ bool Consumer::Poll()
 	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo.load();
 	const uint32_t queueWrapAround = GetWrapAroundCount(lastWriteInfo);
 	const uint32_t queueLastWritePosition = GetLastWritePosition(lastWriteInfo);
-	if (mLastReadPosition == queueLastWritePosition && mWrapAroundCount == queueWrapAround)
+	if (mLastReadPosition == queueLastWritePosition && mWrapAroundCounter == queueWrapAround)
 	{
 		return false;
 	}
-	DEBUG_THROW_IF(mWrapAroundCount > queueWrapAround, "wrap count of reader is ahead of that of writer, is there a race condition?");
-	DEBUG_THROW_IF(mLastReadPosition > queueLastWritePosition && mWrapAroundCount >= queueWrapAround,
+	DEBUG_THROW_IF(mWrapAroundCounter > queueWrapAround, "wrap count of reader is ahead of that of writer, is there a race condition?");
+	DEBUG_THROW_IF(mLastReadPosition > queueLastWritePosition && mWrapAroundCounter >= queueWrapAround,
 				"reader is ahead of writer, is there a race condition?");
 
 	// no need to check for in-sync at start, because if we are not, we will:
@@ -57,7 +57,7 @@ bool Consumer::Poll()
 
 	Idl::FramingHeader framingHeader;
 	mLastReadPosition = ReadData(mLastReadPosition, &framingHeader, Idl::FASTQ_FRAMING_HEADER_SIZE);
-
+  
 	// check if the header has a valid size here, to make sure we can copy, even if we were overtaken
 	THROW_IF(framingHeader.mSize > mPayloadSize, "consumer was too slow, producer overwrote data");
 	if (mCurrentReadBuffer.capacity() < framingHeader.mSize)
@@ -76,18 +76,21 @@ bool Consumer::Poll()
 uint32_t Consumer::ReadData(uint32_t lastReadPosition, void* data, uint32_t size)
 {
 	uint8_t* payload = GetPayloadPointer();
-	const auto endReadPosition = FastQCore::NextFramePosition(lastReadPosition, size);
+	uint32_t endReadPosition = FastQCore::NextFramePosition(lastReadPosition, size);
 
 	// if we have wrapped around, set writeAddr to the start of the payload again, otherwise keep going
 	uint8_t* readAddr = payload + (endReadPosition - size);
 	if (endReadPosition == 0)
 	{
-		mWrapAroundCount++;
+		mWrapAroundCounter++;
 		readAddr = payload;
-		DEBUG_LOG(INFO, LM_CONSUMER, "consumer wrapper around, wrap-around counter: %d", mWrapAroundCount)
+		endReadPosition = size;
+		DEBUG_LOG(INFO, LM_CONSUMER, "consumer wrapper around, wrap-around counter: %d", mWrapAroundCounter)
 	}
 
 	std::memcpy(data, readAddr, size);
+	DEBUG_LOG(INFO, LM_CONSUMER, "[consumer state] last read position %d, wrap-around counter: %d",
+			  endReadPosition, mWrapAroundCounter)
 	return endReadPosition;
 }
 
@@ -97,10 +100,10 @@ void Consumer::AssertInSync()
 	const uint32_t queueWrapAround = GetWrapAroundCount(lastWriteInfo);
 	const uint32_t queueLastWritePosition = GetLastWritePosition(lastWriteInfo);
 
-	DEBUG_THROW_IF(mWrapAroundCount > queueWrapAround, "wrap count of reader is ahead of that of writer, is there a race condition?");
-	DEBUG_THROW_IF(mLastReadPosition > queueLastWritePosition && mWrapAroundCount >= queueWrapAround,
+	DEBUG_THROW_IF(mWrapAroundCounter > queueWrapAround, "wrap count of reader is ahead of that of writer, is there a race condition?");
+	DEBUG_THROW_IF(mLastReadPosition > queueLastWritePosition && mWrapAroundCounter >= queueWrapAround,
 				   "reader is ahead of writer, is there a race condition?");
-	const uint32_t sizeBehind = (queueWrapAround - mWrapAroundCount) * mPayloadSize + (queueLastWritePosition - mLastReadPosition);
+	const uint32_t sizeBehind = (queueWrapAround - mWrapAroundCounter) * mPayloadSize + (queueLastWritePosition - mLastReadPosition);
 	THROW_IF(sizeBehind >= mPayloadSize, "reader was too slow, writer looped around and overwrote reader");
 }
 

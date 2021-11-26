@@ -40,7 +40,7 @@ private:
 	std::vector<uint8_t> mCurrentReadBuffer;
 	uint32_t mFileSize {0};
 	uint32_t mPayloadSize {0};
-	uint32_t mWrapAroundCount {0};
+	uint32_t mWrapAroundCounter {0};
 	uint32_t mLastReadPosition {0};
 };
 
