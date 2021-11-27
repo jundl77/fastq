@@ -1,13 +1,16 @@
 import asyncio
 import argparse
-import time
+from pathlib import Path
 
 
-async def run(producer_binary: str, consumer_binary: str):
-    producer_cmd = f'taskset 0x00000001 {producer_binary} 10 no_log'
+async def run(release_build_dir: str):
+    producer_binary = str(Path(release_build_dir) / 'sample_apps/test_producer/test_producer_app')
+    consumer_binary = str(Path(release_build_dir) / 'sample_apps/test_consumer/test_consumer_app')
+
+    producer_cmd = f'taskset 0x00000001 {producer_binary} 11 no_log'
 
     consumer_cmds = list()
-    consumer_cmds += [f'taskset 0x00000010 {consumer_binary} 10 no_log'] * 1
+    consumer_cmds += [f'taskset 0x00000010 {consumer_binary} 10 no_log'] * 10
 
     coros = [run_command(producer_cmd, 'producer', is_consumer=False)]
     for i in range(len(consumer_cmds)):
@@ -17,7 +20,7 @@ async def run(producer_binary: str, consumer_binary: str):
 
 async def run_command(cmd: str, desc: str, is_consumer: bool):
     if is_consumer:
-        await asyncio.sleep(2)
+        await asyncio.sleep(0.5)
 
     print(f'running: {cmd}')
     proc = await asyncio.create_subprocess_shell(
@@ -36,16 +39,12 @@ async def run_command(cmd: str, desc: str, is_consumer: bool):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--producer_binary', default='../cmake-build-release/sample_apps/test_producer/test_producer_app')
-    parser.add_argument('--consumer_binary', default='../cmake-build-release/sample_apps/test_consumer/test_consumer_app')
+    parser.add_argument('release_build_dir')
     args = parser.parse_args()
-
-    producer = args.producer_binary
-    consumer = args.consumer_binary
 
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(run(producer, consumer))
+        loop.run_until_complete(run(args.release_build_dir))
     except KeyboardInterrupt:
         print('Stopped (KeyboardInterrupt)')
 
