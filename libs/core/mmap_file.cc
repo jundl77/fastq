@@ -4,6 +4,7 @@
 #include <core/throw_if.h>
 
 #include <string>
+#include <cstring>
 #include <cerrno>
 #include <unistd.h>
 #include <fcntl.h>

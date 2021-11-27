@@ -1,4 +1,4 @@
 # FastQ
 
 ### Dependencies
-- none so far!
+- gtest for unit tests
