@@ -15,9 +15,10 @@ class Producer : public FastQCore
 {
 public:
 	Producer(std::string shmFilename, int fileSize);
+	~Producer() override;
 
 	void Start();
-
+	void Shutdown(); // ensures clean closing of shm
 	void Push(uint32_t type, void* data, uint32_t size);
 
 private:
@@ -31,6 +32,8 @@ private:
 	Idl::FastQueue* mFastQueue;
 	uint32_t mLastWritePosition {0};
 	uint32_t mWrapAroundCounter {0};
+
+	friend class FastQTestFixture;
 };
 
 }

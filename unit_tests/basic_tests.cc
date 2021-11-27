@@ -4,9 +4,27 @@
 #include <consumer/consumer.h>
 #include <gtest/gtest.h>
 
+namespace FastQ {
+
+class FastQTestFixture
+{
+public:
+	uint32_t inject_GetLastWritePosition(FastQ::Producer& producer)
+	{
+		return FastQCore::GetLastWritePosition(producer.mFastQueue->mLastWriteInfo);
+	}
+
+	uint32_t inject_GetWrapAroundCount(FastQ::Producer& producer)
+	{
+		return FastQCore::GetWrapAroundCount(producer.mFastQueue->mLastWriteInfo);
+	}
+};
+
+}
+
 namespace FastQ::Testing {
 
-static const std::string SHM_FILE {"test.shm"};
+static const std::string SHM_FILE {"test_shm"};
 
 struct QueueElement
 {
@@ -19,7 +37,9 @@ class BasicTests : public IFastQHandler, public ::testing::Test
 {
 public:
 	BasicTests()
-	{}
+	{
+		FastQ::SetGlobalLogLevel(DEBUG);
+	}
 
 protected:
 	void Start()
@@ -31,6 +51,15 @@ protected:
 		CompareHeaders((void*)&mProducer.GetHeader(), (void*)&mConsumer1.GetHeader());
 		CompareHeaders((void*)&mProducer.GetHeader(), (void*)&mConsumer2.GetHeader());
 		CompareHeaders((void*)&mProducer.GetHeader(), (void*)&mConsumer3.GetHeader());
+	}
+
+	void OnConnected() override
+	{
+	}
+
+	void OnDisconnected(const std::string& reason) override
+	{
+		//THROW_IF(true, "consumer disconnected with reason: %s", reason.c_str());
 	}
 
 	void OnData(u_int32_t type, void* data, u_int32_t size) override
@@ -71,6 +100,7 @@ protected:
 	}
 
 protected:
+	FastQTestFixture mTestFixture;
 	FastQ::Producer mProducer{SHM_FILE, 1024 * 2};
 	FastQ::Consumer mConsumer1{SHM_FILE, *this};
 	FastQ::Consumer mConsumer2{SHM_FILE, *this};
@@ -147,19 +177,31 @@ TEST_F(BasicTests, MultiplePushPop)
 
 TEST_F(BasicTests, WrapAround)
 {
-	FastQ::Producer producer{SHM_FILE, sizeof(SimpleFoo) * 2};
+	const size_t headerSize = Idl::FASTQ_FRAMING_HEADER_SIZE;
+	const size_t filesize = Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + headerSize + sizeof(SimpleFoo);
+	FastQ::Producer producer{SHM_FILE, filesize};
 	FastQ::Consumer consumer{SHM_FILE, *this};
 
 	producer.Start();
 	consumer.Start();
+	EXPECT_EQ(0, mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
+	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo1);
+
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
+	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(1, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo1);
+
 	producer.Push(mFoo2.mType, &mFoo2, sizeof(mFoo2));
+	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(2, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo2);
 
@@ -168,20 +210,31 @@ TEST_F(BasicTests, WrapAround)
 
 TEST_F(BasicTests, WrapAround_PayloadOnly)
 {
-	const size_t filesize = Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + sizeof(SimpleFoo) + Idl::FASTQ_FRAMING_HEADER_SIZE * 2;
+	const size_t headerSize = Idl::FASTQ_FRAMING_HEADER_SIZE;
+	const size_t filesize = Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + headerSize + sizeof(SimpleFoo) + headerSize;
 	FastQ::Producer producer{SHM_FILE, filesize};
 	FastQ::Consumer consumer{SHM_FILE, *this};
 
 	producer.Start();
 	consumer.Start();
+	EXPECT_EQ(0, mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
+	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo1);
+
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
+	EXPECT_EQ(sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(1, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo1);
+
 	producer.Push(mFoo2.mType, &mFoo2, sizeof(mFoo2));
+	EXPECT_EQ(sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(2, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo2);
 
@@ -190,15 +243,29 @@ TEST_F(BasicTests, WrapAround_PayloadOnly)
 
 TEST_F(BasicTests, SingleProducerSingleConsumer_TestProducerOvertakesConsumer)
 {
-//	Start();
-//
-//	for (int i = 0; i < 100; i++)
-//	{
-//		mProducer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
-//	}
-//	EXPECT_THROW(mConsumer1.Poll(), std::runtime_error);
-//	EXPECT_THROW(mConsumer3.Poll(), std::runtime_error);
-//	EXPECT_THROW(mConsumer2.Poll(), std::runtime_error);
+	const size_t headerSize = Idl::FASTQ_FRAMING_HEADER_SIZE;
+	const size_t filesize = Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + headerSize * 2 + sizeof(SimpleFoo) * 2 + headerSize;
+	FastQ::Producer producer{SHM_FILE, filesize};
+	FastQ::Consumer consumer{SHM_FILE, *this};
+
+	producer.Start();
+	consumer.Start();
+	EXPECT_EQ(0, mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
+
+	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
+	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
+
+	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
+	EXPECT_EQ(headerSize * 2 + sizeof(mFoo1) * 2, mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
+
+	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
+	EXPECT_EQ(sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(1, mTestFixture.inject_GetWrapAroundCount(producer));
+
+	EXPECT_THROW(consumer.Poll(), std::runtime_error);
 }
 
 }

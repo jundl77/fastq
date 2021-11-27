@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <chrono>
 
+namespace FastQ {
+
 #define DEBUG 0
 #define INFO  1
 #define WARN  2
@@ -13,15 +15,11 @@
 
 using LogModule = StrongTypedef<std::string, struct LogModuleTag>;
 
-static uint8_t GLOBAL_LOG_LEVEL = INFO;
-
 using Timestamp = std::chrono::system_clock::time_point;
 using NanoPosixTime = int64_t;
 
-inline void SetGlobalLogLevel(int logLevel)
-{
-	GLOBAL_LOG_LEVEL = logLevel;
-}
+void SetGlobalLogLevel(int logLevel);
+uint8_t GetGlobalLogLevel();
 
 inline NanoPosixTime ToNanoPosixTime(const Timestamp& timestamp)
 {
@@ -53,7 +51,7 @@ inline decltype(auto) GetLocalTime()
 #define LOG(level, module, ...) \
 	do \
 	{ \
-		if (level == DEBUG && GLOBAL_LOG_LEVEL == DEBUG) \
+		if (level == DEBUG && FastQ::GetGlobalLogLevel() == DEBUG) \
 		{ \
 			std::cout << GetLocalTime() << " [Debug ] [" << module << "] "; \
 			std::printf(__VA_ARGS__); \
@@ -79,8 +77,10 @@ inline decltype(auto) GetLocalTime()
 		} \
 	} while(false);
 
-#ifdef DEBUG
-	#define DEBUG_LOG(level, module, ...) { LOG(level, module, __VA_ARGS__) }
-#else
+#ifdef NDEBUG
 	#define DEBUG_LOG(level, module, ...) {}
+#else
+	#define DEBUG_LOG(level, module, ...) { LOG(level, module, __VA_ARGS__) }
 #endif
+
+}

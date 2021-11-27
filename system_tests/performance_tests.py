@@ -1,18 +1,24 @@
 import asyncio
 import argparse
+import time
 
 
 async def run(producer_binary: str, consumer_binary: str):
-    cmds = [f'./{producer_binary}']
-    cmds += [f'./{consumer_binary}'] * 10
+    producer_cmd = f'taskset 0x00000001 {producer_binary} 10 no_log'
 
-    coros = list()
-    for i in range(len(cmds)):
-        coros.append(run_command(cmds[i], i))
+    consumer_cmds = list()
+    consumer_cmds += [f'taskset 0x00000010 {consumer_binary} 10 no_log'] * 1
+
+    coros = [run_command(producer_cmd, 'producer', is_consumer=False)]
+    for i in range(len(consumer_cmds)):
+        coros.append(run_command(consumer_cmds[i], f'consumer-{i}', is_consumer=True))
     await asyncio.gather(*coros)
 
 
-async def run_command(cmd, index):
+async def run_command(cmd: str, desc: str, is_consumer: bool):
+    if is_consumer:
+        await asyncio.sleep(2)
+
     print(f'running: {cmd}')
     proc = await asyncio.create_subprocess_shell(
         cmd,
@@ -23,15 +29,15 @@ async def run_command(cmd, index):
 
     print(f'[{cmd!r} exited with {proc.returncode}]')
     if stdout:
-        print(f'[stdout {index}]\n{stdout.decode()}')
+        print(f'[stdout {desc}]\n{stdout.decode()}')
     if stderr:
-        print(f'[stderr {index}]\n{stderr.decode()}')
+        print(f'[stderr {desc}]\n{stderr.decode()}')
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--producer_binary', default='../cmake-build-debug/sample_apps/test_producer/test_producer_app')
-    parser.add_argument('--consumer_binary', default='../cmake-build-debug/sample_apps/test_consumer/test_consumer_app')
+    parser.add_argument('--producer_binary', default='../cmake-build-release/sample_apps/test_producer/test_producer_app')
+    parser.add_argument('--consumer_binary', default='../cmake-build-release/sample_apps/test_consumer/test_consumer_app')
     args = parser.parse_args()
 
     producer = args.producer_binary

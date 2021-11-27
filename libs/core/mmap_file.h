@@ -6,7 +6,8 @@ namespace FastQ {
 
 enum MmapProtMode
 {
-	READ_WRITE = 1,
+	NO_SET = 1,
+	READ_WRITE,
 	READ_ONLY
 };
 
@@ -19,6 +20,7 @@ public:
 	void Create(int initialSize);
 	void Mmap(int size, MmapProtMode);
 	void Munmap();
+	void Close();
 	const std::string& GetName() const { return mShmFilename; }
 	void* GetAddress() const;
 
@@ -33,7 +35,9 @@ private:
 	int mFd {0};
 	void* mAddr;
 	int mMappedSize {0};
+	bool mIsOpen {false};
 	bool mIsMapped {false};
+	MmapProtMode mProtMode {MmapProtMode::NO_SET};
 };
 
 }

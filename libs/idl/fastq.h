@@ -58,7 +58,7 @@ struct FastQueue
 	uint64_t mPadding2;
 
 	// bits 0-31 contain last write location, bits 32-28 contain wrap around count
-	std::atomic<std::uint64_t> mLastWriteInfo {0};
+	std::atomic<uint64_t> mLastWriteInfo {0};
 
 	// data is here
 };
