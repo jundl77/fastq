@@ -14,11 +14,6 @@ Producer::Producer(std::string shmFilename, int fileSize)
 {
 }
 
-Producer::~Producer()
-{
-	Shutdown();
-}
-
 void Producer::Start()
 {
 	LOG(INFO, LM_PRODUCER, "starting producer")

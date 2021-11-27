@@ -96,18 +96,6 @@ void MmappedFile::Close()
 	}
 }
 
-void MmappedFile::CloseFile()
-{
-	if (mProtMode == MmapProtMode::READ_WRITE)
-	{
-		int res = shm_unlink(mShmFilename.c_str());
-		THROW_IF(0 != res, "shm_unlink failed, errno=%s (%d)", std::strerror(errno), errno);
-		LOG(INFO, LM_MMAP, "shm_unlinked %s from memory successfully", mShmFilename.c_str());
-	}
-	close(mFd);
-	mIsOpen = false;
-}
-
 void* MmappedFile::GetAddress() const
 {
 	THROW_IF(!mIsMapped, "cannot get address if file is not mapped")
@@ -120,6 +108,18 @@ int MmappedFile::ShmOpenFile(MmapProtMode mode)
 	THROW_IF(-1 == fd, "shm_open failed, errno=%s (%d)", std::strerror(errno), errno);
 	mIsOpen = true;
 	return fd;
+}
+
+void MmappedFile::CloseFile()
+{
+	if (mProtMode == MmapProtMode::READ_WRITE)
+	{
+		int res = shm_unlink(mShmFilename.c_str());
+		THROW_IF(0 != res, "shm_unlink failed, errno=%s (%d)", std::strerror(errno), errno);
+		LOG(INFO, LM_MMAP, "shm_unlinked %s from memory successfully", mShmFilename.c_str());
+	}
+	close(mFd);
+	mIsOpen = false;
 }
 
 int MmappedFile::MmapProtModeToProt(MmapProtMode mode)

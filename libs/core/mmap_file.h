@@ -25,12 +25,12 @@ public:
 	void* GetAddress() const;
 
 private:
-	void CloseFile();
-
 	int ShmOpenFile(MmapProtMode);
+	void CloseFile();
 	int MmapProtModeToProt(MmapProtMode);
 	int MmapProtModeToOMode(MmapProtMode);
 
+private:
 	std::string mShmFilename;
 	int mFd {0};
 	void* mAddr;

@@ -51,7 +51,7 @@ inline decltype(auto) GetLocalTime()
 #define LOG(level, module, ...) \
 	do \
 	{ \
-		if (level == DEBUG && FastQ::GetGlobalLogLevel() == DEBUG) \
+		if (level == DEBUG && GetGlobalLogLevel() == DEBUG) \
 		{ \
 			std::cout << GetLocalTime() << " [Debug ] [" << module << "] "; \
 			std::printf(__VA_ARGS__); \

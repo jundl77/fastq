@@ -15,7 +15,6 @@ class Producer : public FastQCore
 {
 public:
 	Producer(std::string shmFilename, int fileSize);
-	~Producer() override;
 
 	void Start();
 	void Shutdown(); // ensures clean closing of shm

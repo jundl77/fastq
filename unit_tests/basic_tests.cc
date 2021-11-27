@@ -57,9 +57,9 @@ protected:
 	{
 	}
 
-	void OnDisconnected(const std::string& reason) override
+	void OnDisconnected(const std::string& reason, DisconnectType) override
 	{
-		//THROW_IF(true, "consumer disconnected with reason: %s", reason.c_str());
+		THROW_IF(true, "consumer disconnected with reason: %s", reason.c_str());
 	}
 
 	void OnData(u_int32_t type, void* data, u_int32_t size) override
