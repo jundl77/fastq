@@ -1,4 +1,4 @@
-set(TARGET_NAME core_lib)
+set(TARGET_NAME fastq_core_lib)
 
 file(GLOB headers *.h)
 file(GLOB sources *.cc)

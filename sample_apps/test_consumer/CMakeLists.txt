@@ -5,7 +5,7 @@ file(GLOB sources *.cc)
 
 add_executable(${TARGET_NAME} ${headers} ${sources})
 target_link_libraries(${TARGET_NAME}
-        consumer_lib
-        core_lib)
+        fastq_consumer_lib
+        fastq_core_lib)
 
 target_include_directories(${TARGET_NAME} PUBLIC ..)
