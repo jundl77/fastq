@@ -11,13 +11,19 @@
 
 namespace FastQ {
 
+enum DisconnectType
+{
+	DISCONNECT_WITH_ERROR,
+	DISCONNECT_WITHOUT_ERROR
+};
+
 class IFastQHandler
 {
 public:
 	virtual ~IFastQHandler() = default;
 
 	virtual void OnConnected() = 0;
-	virtual void OnDisconnected(const std::string& reason) = 0;
+	virtual void OnDisconnected(const std::string& reason, DisconnectType) = 0;
 	virtual void OnData(u_int32_t type, void* data, u_int32_t size) = 0;
 };
 
@@ -34,7 +40,7 @@ public:
 
 private:
 	uint32_t ReadData(uint32_t lastReadPosition, void* data, uint32_t size);
-	void AssertInSync();
+	bool AssertInSync();
 	void ValidateHeader();
 
 private:

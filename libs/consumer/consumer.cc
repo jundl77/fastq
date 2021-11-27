@@ -65,12 +65,12 @@ bool Consumer::Poll()
 				"reader is ahead of writer, is there a race condition?");
 
 	// check to make sure we were not overtaken by the producer
-	AssertInSync();
+	if (!AssertInSync()) { return false; }
 	Idl::FramingHeader framingHeader;
 	mLastReadPosition = ReadData(mLastReadPosition, &framingHeader, Idl::FASTQ_FRAMING_HEADER_SIZE);
   
 	// check to make sure we were not overtaken while reading the header
-	AssertInSync();
+	if (!AssertInSync()) { return false; }
 	if (mCurrentReadBuffer.capacity() < framingHeader.mSize)
 	{
 		mCurrentReadBuffer.reserve(framingHeader.mSize);
@@ -79,7 +79,7 @@ bool Consumer::Poll()
 	mLastReadPosition = ReadData(mLastReadPosition, mCurrentReadBuffer.data(), framingHeader.mSize);
 
 	// check after copying the data into the read buffer to make sure we have not been overtaken by the producer
-	AssertInSync();
+	if (!AssertInSync()) { return false; }
 	mHandler.OnData(framingHeader.mType, mCurrentReadBuffer.data(), framingHeader.mSize);
 	return true;
 }
@@ -105,7 +105,7 @@ uint32_t Consumer::ReadData(uint32_t lastReadPosition, void* data, uint32_t size
 	return endReadPosition;
 }
 
-void Consumer::AssertInSync()
+bool Consumer::AssertInSync()
 {
 	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo.load();
 	const uint32_t queueWrapAround = GetWrapAroundCount(lastWriteInfo);
@@ -116,8 +116,12 @@ void Consumer::AssertInSync()
 				   "reader is ahead of writer, is there a race condition?");
 	const uint32_t sizeBehind = (queueWrapAround - mWrapAroundCounter) * mPayloadSize + (queueLastWritePosition - mLastReadPosition);
 
-	Shutdown();
-	mHandler.OnDisconnected("reader was too slow, writer looped around and overwrote reader");
+	if (sizeBehind > mPayloadSize)
+	{
+		Shutdown();
+		mHandler.OnDisconnected("reader was too slow, writer looped around and overwrote reader", DisconnectType::DISCONNECT_WITH_ERROR);
+	}
+	return mConnected;
 }
 
 void Consumer::ValidateHeader()

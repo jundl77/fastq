@@ -1,6 +1,7 @@
 #include "producer.h"
 #include <core/logger.h>
 #include <array>
+#include <cstring>
 
 namespace FastQ {
 

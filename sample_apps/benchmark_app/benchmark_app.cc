@@ -2,6 +2,7 @@
 #include <core/logger.h>
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <array>
 
 using namespace FastQ;

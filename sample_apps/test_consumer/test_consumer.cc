@@ -31,7 +31,7 @@ public:
 		LOG(INFO, LM_APP, "consumer is connected");
 	}
 
-	void OnDisconnected(const std::string& reason) override
+	void OnDisconnected(const std::string& reason, DisconnectType) override
 	{
 		LOG(ERROR, LM_APP, "consumer disconnected with reason: %s", reason.c_str());
 	}
