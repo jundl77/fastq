@@ -2,9 +2,11 @@ import asyncio
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, List
 
 performance_metrics: Dict = dict()
+all_tests: List = list()
+failed_tests: List = list()
 
 
 async def run(release_build_dir: str, num_consumer_cores: int, num_consumers: int):
@@ -64,14 +66,24 @@ def collect_metrics(desc: str, stdout: str):
         performance_metrics[desc].update(parse_metric_line(line))
 
 
-def print_metric_for_app(app_name: str, benchmark_mb_per_sec: int):
+def print_metric_for_app(app_name: str, benchmark_mb_per_sec: int, num_consumers: int):
+    global all_tests, failed_tests
     for name, metrics in performance_metrics.items():
         if not name == app_name:
             continue
-        print(f"{name}:")
-        if not name == 'benchmark':
-            performance_percent = metrics['mb_per_sec'] * 1.0 / benchmark_mb_per_sec
-            print(f"  percent_throughput_of_benchmark: {(performance_percent * 100):.2f}%")
+
+        finished = int(metrics['finished']) == 1
+        performance_percent = metrics['mb_per_sec'] * 1.0 / benchmark_mb_per_sec
+        if finished and performance_percent > 0.3:
+            status = 'PASSED'
+        else:
+            status = "FAIL"
+            failed_tests.append(f'[FAIL] test-{num_consumers}-consumers: {app_name}')
+
+        all_tests.append(f'[{status}] test-{num_consumers}-consumers: {app_name}')
+
+        print(f"{name} [{status}]:")
+        print(f"  percent_throughput_of_benchmark: {(performance_percent * 100):.2f}%")
         for metric_name, metric_value in metrics.items():
             print(f"  {metric_name}: {metric_value}")
 
@@ -85,12 +97,29 @@ def print_metrics(num_consumers: int):
     print("==============================================")
     print(f"RESULTS: benchmark with 1 producer and {num_consumers} consumers")
     print("")
-    print_metric_for_app('benchmark', benchmark_mb_per_sec)
-    print_metric_for_app('producer', benchmark_mb_per_sec)
+    print_metric_for_app('benchmark', benchmark_mb_per_sec, num_consumers)
+    print_metric_for_app('producer', benchmark_mb_per_sec, num_consumers)
     for name, metrics in performance_metrics.items():
         if 'consumer' in name:
-            print_metric_for_app(name, benchmark_mb_per_sec)
+            print_metric_for_app(name, benchmark_mb_per_sec, num_consumers)
     print("==============================================")
+
+
+def print_final_results():
+    print("==============================================")
+    print(f" ALL RESULTS")
+    print("")
+    for result in all_tests:
+        print(result)
+    print("")
+
+    if len(failed_tests) == 0:
+        print("[SUCCESS] All tests passed.")
+    else:
+        print("There were failures. The following tests failed:")
+
+    for result in failed_tests:
+        print(result)
 
 
 def main():
@@ -104,9 +133,10 @@ def main():
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 1))
-        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 5))
-        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 10))
-        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 100))
+        #loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 5))
+        #loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 10))
+        #loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 100))
+        print_final_results()
     except KeyboardInterrupt:
         print('Stopped (KeyboardInterrupt)')
 
