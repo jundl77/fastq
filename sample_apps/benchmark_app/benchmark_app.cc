@@ -43,7 +43,7 @@ int main(int argc, const char** argv)
 
 	LOG(INFO, LM_APP, "total memcopies: %llu", copyCount);
 	double mbPerSec = (copyCount * sizeof(data) * 1.0) / (1024.0 * 1024.0) / duration.count();
-	LOG(INFO, LM_APP, "[benchmark_metric] {mb_per_sec: %f}", mbPerSec);
+	LOG(INFO, LM_APP, "[benchmark_metric] {\"mb_per_sec\": %f}", mbPerSec);
 
 	return 1;
 }

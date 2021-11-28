@@ -34,6 +34,7 @@ public:
 	void OnDisconnected(const std::string& reason, DisconnectType) override
 	{
 		LOG(ERROR, LM_APP, "consumer disconnected with reason: %s", reason.c_str());
+		mExitedOnError = true;
 	}
 
 	void OnData(u_int32_t type, void* data, u_int32_t size) override
@@ -54,6 +55,7 @@ public:
 
 	bool mShouldLog {true};
 	uint64_t mReadCount {0};
+	bool mExitedOnError {false};
 };
 
 int main(int argc, const char** argv)
@@ -96,6 +98,6 @@ int main(int argc, const char** argv)
 	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
 	LOG(INFO, LM_APP, "total read count: %llu over %d ms", handler.mReadCount, realDuration.count());
 	double mbPerSec = (handler.mReadCount * sizeof(SampleData) * 1.0) / (1024.0 * 1024.0) / duration.count();
-	LOG(INFO, LM_APP, "[read_metric] {mb_per_sec: %f}", mbPerSec);
+	LOG(INFO, LM_APP, "[read_metric] {\"mb_per_sec\": %f, \"finished\": %d}", mbPerSec, !handler.mExitedOnError);
 	return 1;
 }

@@ -76,7 +76,7 @@ int main(int argc, const char** argv)
 	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
 	LOG(INFO, LM_APP, "total write count: %llu over %d ms", writeCount, realDuration.count());
 	double mbPerSec = (writeCount * sizeof(data) * 1.0) / (1024.0 * 1024.0) / duration.count();
-	LOG(INFO, LM_APP, "[write_metric] {mb_per_sec: %f}", mbPerSec);
+	LOG(INFO, LM_APP, "[write_metric] {\"mb_per_sec\": %f}", mbPerSec);
 
 	return 1;
 }

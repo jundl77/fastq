@@ -1,21 +1,35 @@
 import asyncio
 import argparse
+import json
 from pathlib import Path
+from typing import Dict, Tuple
+
+performance_metrics: Dict = dict()
 
 
-async def run(release_build_dir: str):
+async def run(release_build_dir: str, num_cores: int, num_consumers: int):
+    global performance_metrics
+    assert num_cores >= 3, "at least 3 cores are required for the performance tests"
+    performance_metrics = dict()
+    benchmark_binary = str(Path(release_build_dir) / 'sample_apps/benchmark_app/benchmark_app')
     producer_binary = str(Path(release_build_dir) / 'sample_apps/test_producer/test_producer_app')
     consumer_binary = str(Path(release_build_dir) / 'sample_apps/test_consumer/test_consumer_app')
 
-    producer_cmd = f'taskset 0x00000001 {producer_binary} 11 no_log'
+    benchmark_cmd = f'taskset -c 0 {benchmark_binary} 10'
+    producer_cmd = f'taskset -c 1 {producer_binary} 11 no_log'
 
-    consumer_cmds = list()
-    consumer_cmds += [f'taskset 0x00000010 {consumer_binary} 10 no_log'] * 10
+    coros = list()
+    coros += [run_command(benchmark_cmd, 'benchmark', is_consumer=False)]
+    coros += [run_command(producer_cmd, 'producer', is_consumer=False)]
 
-    coros = [run_command(producer_cmd, 'producer', is_consumer=False)]
-    for i in range(len(consumer_cmds)):
-        coros.append(run_command(consumer_cmds[i], f'consumer-{i}', is_consumer=True))
+    for i in range(num_consumers):
+        core = (i % num_cores) + 2
+        consumer_cmd = f'taskset -c {core} {consumer_binary} 10 no_log'
+        coros.append(run_command(consumer_cmd, f'consumer-{i}', is_consumer=True))
+
+    print(f'running performance tests with 1 producer and {num_consumers} consumers')
     await asyncio.gather(*coros)
+    print_metrics(num_consumers)
 
 
 async def run_command(cmd: str, desc: str, is_consumer: bool):
@@ -32,19 +46,65 @@ async def run_command(cmd: str, desc: str, is_consumer: bool):
 
     print(f'[{cmd!r} exited with {proc.returncode}]')
     if stdout:
-        print(f'[stdout {desc}]\n{stdout.decode()}')
+        collect_metrics(desc, stdout.decode())
     if stderr:
         print(f'[stderr {desc}]\n{stderr.decode()}')
+
+
+def parse_metric_line(line: str) -> json:
+    metric = json.loads(line.split('_metric]')[-1].strip())
+    return metric
+
+
+def collect_metrics(desc: str, stdout: str):
+    global performance_metrics
+    lines = stdout.split('\n')
+    lines = [line for line in lines if '_metric' in line]
+    performance_metrics[desc] = dict()
+    for line in lines:
+        performance_metrics[desc].update(parse_metric_line(line))
+
+
+def print_metric_for_app(app_name: str, benchmark_mb_per_sec: int):
+    for name, metrics in performance_metrics.items():
+        if not name == app_name:
+            continue
+        print(f"{name}:")
+        if not name == 'benchmark':
+            performance_percent = metrics['mb_per_sec'] * 1.0 / benchmark_mb_per_sec
+            print(f"  percent_throughput_of_benchmark: {(performance_percent * 100):.2f}%")
+        for metric_name, metric_value in metrics.items():
+            print(f"  {metric_name}: {metric_value}")
+
+
+def print_metrics(num_consumers: int):
+    benchmark_mb_per_sec = 0
+    for name, metrics in performance_metrics.items():
+        if name == 'benchmark':
+            benchmark_mb_per_sec = metrics['mb_per_sec']
+
+    print("==============================================")
+    print(f"RESULTS: benchmark with 1 producer and {num_consumers} consumers")
+    print("")
+    print_metric_for_app('benchmark', benchmark_mb_per_sec)
+    print_metric_for_app('producer', benchmark_mb_per_sec)
+    for name, metrics in performance_metrics.items():
+        if 'consumer' in name:
+            print_metric_for_app(name, benchmark_mb_per_sec)
+    print("==============================================")
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('release_build_dir')
+    parser.add_argument('num_cores')
     args = parser.parse_args()
 
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(run(args.release_build_dir))
+        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores), 1))
+        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores), 5))
+        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores), 10))
     except KeyboardInterrupt:
         print('Stopped (KeyboardInterrupt)')
 
