@@ -90,9 +90,16 @@ int main(int argc, const char** argv)
 	LOG(INFO, LM_APP, "reading data..");
 
 	auto start = std::chrono::steady_clock::now();
-	while (consumer.IsConnected() && std::chrono::steady_clock::now() - start < duration)
+	try
 	{
-		consumer.Poll();
+		while (consumer.IsConnected() && std::chrono::steady_clock::now() - start < duration)
+		{
+			consumer.Poll();
+		}
+	}
+	catch (const std::runtime_error& error)
+	{
+		LOG(ERROR, LM_APP, "consumer crashed with error: %s", error.what());
 	}
 
 	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);

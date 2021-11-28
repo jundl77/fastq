@@ -7,7 +7,7 @@ from typing import Dict, Tuple
 performance_metrics: Dict = dict()
 
 
-async def run(release_build_dir: str, num_cores: int, num_consumers: int):
+async def run(release_build_dir: str, num_consumer_cores: int, num_consumers: int):
     global performance_metrics
     performance_metrics = dict()
     benchmark_binary = str(Path(release_build_dir) / 'sample_apps/benchmark_app/benchmark_app')
@@ -22,9 +22,9 @@ async def run(release_build_dir: str, num_cores: int, num_consumers: int):
     coros += [run_command(producer_cmd, 'producer', is_consumer=False)]
 
     for i in range(num_consumers):
-        core = (i % num_cores) + 2
+        core = (i % num_consumer_cores) + 2
         consumer_cmd = f'taskset -c {core} {consumer_binary} 10 no_log'
-        coros.append(run_command(consumer_cmd, f'consumer-{i}', is_consumer=True))
+        coros.append(run_command(consumer_cmd, f'consumer-{i + 1}', is_consumer=True))
 
     print(f'running performance tests with 1 producer and {num_consumers} consumers')
     await asyncio.gather(*coros)
@@ -47,7 +47,7 @@ async def run_command(cmd: str, desc: str, is_consumer: bool):
     if stdout:
         collect_metrics(desc, stdout.decode())
     if stderr:
-        print(f'[stderr {desc}]\n{stderr.decode()}')
+        print(f'[stderr {desc}] process crashed with error: \n{stderr.decode()}')
 
 
 def parse_metric_line(line: str) -> json:
@@ -106,6 +106,7 @@ def main():
         loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 1))
         loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 5))
         loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 10))
+        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 100))
     except KeyboardInterrupt:
         print('Stopped (KeyboardInterrupt)')
 
