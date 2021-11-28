@@ -74,7 +74,7 @@ def print_metric_for_app(app_name: str, benchmark_mb_per_sec: int, num_consumers
 
         finished = int(metrics['finished']) == 1
         performance_percent = metrics['mb_per_sec'] * 1.0 / benchmark_mb_per_sec
-        if finished and performance_percent > 0.3:
+        if finished and performance_percent > 0.7:
             status = 'PASSED'
         else:
             status = "FAIL"
