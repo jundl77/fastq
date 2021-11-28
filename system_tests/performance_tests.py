@@ -9,7 +9,6 @@ performance_metrics: Dict = dict()
 
 async def run(release_build_dir: str, num_cores: int, num_consumers: int):
     global performance_metrics
-    assert num_cores >= 3, "at least 3 cores are required for the performance tests"
     performance_metrics = dict()
     benchmark_binary = str(Path(release_build_dir) / 'sample_apps/benchmark_app/benchmark_app')
     producer_binary = str(Path(release_build_dir) / 'sample_apps/test_producer/test_producer_app')
@@ -100,11 +99,13 @@ def main():
     parser.add_argument('num_cores')
     args = parser.parse_args()
 
+    assert int(args.num_cores) >= 3, "at least 3 cores are required for the performance tests"
+
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores), 1))
-        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores), 5))
-        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores), 10))
+        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 1))
+        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 5))
+        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 10))
     except KeyboardInterrupt:
         print('Stopped (KeyboardInterrupt)')
 
