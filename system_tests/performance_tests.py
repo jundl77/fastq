@@ -113,10 +113,12 @@ def print_final_results():
         print(result)
     print("")
 
-    if len(failed_tests) == 0:
+    if len(all_tests) == 0:
+        print("[FAIL] No test ran.")
+    elif len(failed_tests) == 0:
         print("[SUCCESS] All tests passed.")
     else:
-        print("There were failures. The following tests failed:")
+        print("[FAIL] There were failures. The following tests failed:")
 
     for result in failed_tests:
         print(result)
