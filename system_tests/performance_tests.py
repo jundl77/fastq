@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 from typing import Dict, List
+from sys import platform
 
 performance_metrics: Dict = dict()
 all_tests: List = list()
@@ -16,8 +17,8 @@ async def run(release_build_dir: str, num_consumer_cores: int, num_consumers: in
     producer_binary = str(Path(release_build_dir) / 'sample_apps/test_producer/test_producer_app')
     consumer_binary = str(Path(release_build_dir) / 'sample_apps/test_consumer/test_consumer_app')
 
-    benchmark_cmd = f'taskset -c 0 {benchmark_binary} 10'
-    producer_cmd = f'taskset -c 1 {producer_binary} 11 no_log'
+    benchmark_cmd = f'{set_cpu_affinity(0)} {benchmark_binary} 10'
+    producer_cmd = f'{set_cpu_affinity(1)} {producer_binary} 11 no_log'
 
     coros = list()
     coros += [run_command(benchmark_cmd, 'benchmark', is_consumer=False)]
@@ -25,7 +26,7 @@ async def run(release_build_dir: str, num_consumer_cores: int, num_consumers: in
 
     for i in range(num_consumers):
         core = (i % num_consumer_cores) + 2
-        consumer_cmd = f'taskset -c {core} {consumer_binary} 10 no_log'
+        consumer_cmd = f'{set_cpu_affinity(core)} {consumer_binary} 10 no_log'
         coros.append(run_command(consumer_cmd, f'consumer-{i + 1}', is_consumer=True))
 
     print(f'running performance tests with 1 producer and {num_consumers} consumers')
@@ -50,6 +51,18 @@ async def run_command(cmd: str, desc: str, is_consumer: bool):
         collect_metrics(desc, stdout.decode())
     if stderr:
         print(f'[stderr {desc}] process crashed with error: \n{stderr.decode()}')
+
+
+def support_cpu_affinity() -> bool:
+    if platform == "darwin":
+        return False # tasket not supported on OSX
+    return True
+
+
+def set_cpu_affinity(core: int) -> str:
+    if not support_cpu_affinity():
+        return ""
+    return f"taskset -c {core}"
 
 
 def parse_metric_line(line: str) -> json:
@@ -131,6 +144,12 @@ def main():
     args = parser.parse_args()
 
     assert int(args.num_cores) >= 3, "at least 3 cores are required for the performance tests"
+
+    print("starting fastq performance tests")
+    if not support_cpu_affinity():
+        print("======================================================================================")
+        print(" ** WARNING ** : CPU affinity is not supported on this system, benchmarks will be near useless!")
+        print("======================================================================================")
 
     loop = asyncio.get_event_loop()
     try:
