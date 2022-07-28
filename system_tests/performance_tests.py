@@ -21,7 +21,7 @@ async def run(release_build_dir: str,
     consumer_binary = str(Path(release_build_dir) / 'sample_apps/test_consumer/test_consumer_app')
 
     benchmark_cmd = f'{set_cpu_affinity(first_core)} {benchmark_binary} 10'
-    producer_cmd = f'{set_cpu_affinity(first_core + 1)} {producer_binary} 11 no_log'
+    producer_cmd = f'{set_cpu_affinity(first_core + 1)} {producer_binary} 11'
 
     coros = list()
     coros += [run_command(benchmark_cmd, 'benchmark', is_consumer=False)]
@@ -29,7 +29,7 @@ async def run(release_build_dir: str,
 
     for i in range(num_consumers):
         core = (i % num_consumer_cores) + 2 + first_core
-        consumer_cmd = f'{set_cpu_affinity(core)} {consumer_binary} 10 no_log'
+        consumer_cmd = f'{set_cpu_affinity(core)} {consumer_binary} 10'
         coros.append(run_command(consumer_cmd, f'consumer-{i + 1}', is_consumer=True))
 
     print(f'running performance tests with 1 producer and {num_consumers} consumers')
