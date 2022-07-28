@@ -94,13 +94,20 @@ int main(int argc, const char** argv)
 	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
 	const uint64_t start = TSCClock::NowInCycles();
 
+	THROW_IF(!consumer.IsConnected(), "consumer not connected to producer, is producer running?");
+
 	uint64_t cycleCount = 0;
+	bool isRunning = true;
 	try
 	{
-		while (cycleCount % 10000 && consumer.IsConnected() && TSCClock::NowInCycles() - start < durationInCycles)
+		while (isRunning)
 		{
+			if (cycleCount % 10000)
+			{
+				isRunning = TSCClock::NowInCycles() - start < durationInCycles;
+			}
 			consumer.Poll();
-			cycleCount += 1;
+			cycleCount++;
 		}
 	}
 	catch (const std::runtime_error& error)
