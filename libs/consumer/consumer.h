@@ -24,7 +24,7 @@ public:
 
 	virtual void OnConnected() = 0;
 	virtual void OnDisconnected(const std::string& reason, DisconnectType) = 0;
-	virtual void OnData(u_int32_t type, void* data, u_int32_t size) = 0;
+	virtual void OnData(uint32_t type, void* data, uint32_t size) = 0;
 };
 
 class Consumer : public FastQCore
