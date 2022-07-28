@@ -1,5 +1,6 @@
 #include <producer/producer.h>
 #include <sample_idl/sample_idl.h>
+#include <core/tsc_clock.h>
 #include <core/logger.h>
 #include <chrono>
 #include <thread>
@@ -73,10 +74,12 @@ int main(int argc, const char** argv)
 
 	LOG(INFO, LM_APP, "writing data..");
 
-	auto start = std::chrono::steady_clock::now();
+	TSCClock::Initialise();
+	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
+	const uint64_t start = TSCClock::NowInCycles();
 
 	uint64_t writeCount = 0;
-	while (std::chrono::steady_clock::now() - start < duration)
+	while (TSCClock::NowInCycles() - start < durationInCycles)
 	{
 		data.mId = writeCount;
 		producer.Push(1, &data, sizeof(data));
@@ -85,7 +88,7 @@ int main(int argc, const char** argv)
 		if (goSlow) { std::this_thread::sleep_for(1ms); }
 	}
 
-	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(TSCClock::Now() - TSCClock::FromCycles(start));
 	LOG(INFO, LM_APP, "total write count: %llu over %d ms", writeCount, realDuration.count());
 	double mbPerSec = (writeCount * sizeof(data) * 1.0) / (1024.0 * 1024.0) / duration.count();
 	LOG(INFO, LM_APP, "[write_metric] {\"mb_per_sec\": %f, \"finished\": 1}", mbPerSec);

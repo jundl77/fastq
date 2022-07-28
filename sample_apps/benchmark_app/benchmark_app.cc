@@ -1,4 +1,5 @@
 #include <sample_idl/sample_idl.h>
+#include <core/tsc_clock.h>
 #include <core/logger.h>
 #include <chrono>
 #include <cstdint>
@@ -30,11 +31,13 @@ int main(int argc, const char** argv)
 	}
 
 	LOG(INFO, LM_APP, "doing memcopies..");
-	auto start = std::chrono::steady_clock::now();
+	TSCClock::Initialise();
+	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
+	const uint64_t start = TSCClock::NowInCycles();
 
 	std::array<uint8_t, sizeof(data)> buffer {};
 	uint32_t copyCount = 0;
-	while (std::chrono::steady_clock::now() - start < duration)
+	while (TSCClock::NowInCycles() - start < durationInCycles)
 	{
 		data.mId = copyCount;
 		std::memcpy(buffer.data(), &data, sizeof(data));

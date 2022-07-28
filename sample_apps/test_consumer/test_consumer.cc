@@ -1,5 +1,6 @@
 #include <consumer/consumer.h>
 #include <sample_idl/sample_idl.h>
+#include <core/tsc_clock.h>
 #include <core/logger.h>
 #include <chrono>
 #include <csignal>
@@ -89,10 +90,14 @@ int main(int argc, const char** argv)
 	consumer.Start();
 	LOG(INFO, LM_APP, "reading data..");
 
-	auto start = std::chrono::steady_clock::now();
+	TSCClock::Initialise();
+	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
+	const uint64_t start = TSCClock::NowInCycles();
+
+	uint64_t writeCount = 0;
 	try
 	{
-		while (consumer.IsConnected() && std::chrono::steady_clock::now() - start < duration)
+		while (consumer.IsConnected() && TSCClock::NowInCycles() - start < durationInCycles)
 		{
 			consumer.Poll();
 		}
@@ -102,7 +107,7 @@ int main(int argc, const char** argv)
 		LOG(ERROR, LM_APP, "consumer crashed with error: %s", error.what());
 	}
 
-	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(TSCClock::Now() - TSCClock::FromCycles(start));
 	LOG(INFO, LM_APP, "total read count: %llu over %d ms", handler.mReadCount, realDuration.count());
 	double mbPerSec = (handler.mReadCount * sizeof(SampleData) * 1.0) / (1024.0 * 1024.0) / duration.count();
 	LOG(INFO, LM_APP, "[read_metric] {\"mb_per_sec\": %f, \"finished\": %d}", mbPerSec, !handler.mExitedOnError);
