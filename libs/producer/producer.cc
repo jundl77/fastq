@@ -16,7 +16,7 @@ Producer::Producer(std::string shmFilename, int fileSize)
 
 void Producer::Start()
 {
-	LOG(INFO, LM_PRODUCER, "starting producer")
+	LOG(FASTQ_INFO, LM_PRODUCER, "starting producer")
 
 	Idl::FastQueue queue = CreateQueue();
 
@@ -59,11 +59,11 @@ uint32_t Producer::WriteData(uint32_t lastWritePosition, void* data, uint32_t si
 		mWrapAroundCounter++;
 		endWritePosition = size;
 		writeAddr = payload;
-		DEBUG_LOG(INFO, LM_PRODUCER, "producer wrapped around, wrap-around counter: %d", mWrapAroundCounter)
+		DEBUG_LOG(FASTQ_INFO, LM_PRODUCER, "producer wrapped around, wrap-around counter: %d", mWrapAroundCounter)
 	}
 
 	std::memcpy(writeAddr, data, size);
-	DEBUG_LOG(INFO, LM_PRODUCER, "[producer state] last write position %d, wrap-around counter: %d",
+	DEBUG_LOG(FASTQ_INFO, LM_PRODUCER, "[producer state] last write position %d, wrap-around counter: %d",
 			  endWritePosition, mWrapAroundCounter)
 	return endWritePosition;
 }

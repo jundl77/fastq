@@ -14,9 +14,9 @@ Consumer* globalConsumer;
 
 void Shutdown()
 {
-	LOG(INFO, LM_APP, "consumer shutting down clean");
+	LOG(FASTQ_INFO, LM_APP, "consumer shutting down clean");
 	globalConsumer->Shutdown();
-	LOG(INFO, LM_APP, "clean shutdown success");
+	LOG(FASTQ_INFO, LM_APP, "clean shutdown success");
 	std::exit(1);
 }
 
@@ -29,12 +29,12 @@ public:
 
 	void OnConnected() override
 	{
-		LOG(INFO, LM_APP, "consumer is connected");
+		LOG(FASTQ_INFO, LM_APP, "consumer is connected");
 	}
 
 	void OnDisconnected(const std::string& reason, DisconnectType) override
 	{
-		LOG(ERROR, LM_APP, "consumer disconnected with reason: %s", reason.c_str());
+		LOG(FASTQ_ERROR, LM_APP, "consumer disconnected with reason: %s", reason.c_str());
 		mExitedOnError = true;
 	}
 
@@ -50,7 +50,7 @@ public:
 			THROW_IF(sampleData->mId != mReadCount, "missed a packet, packet count: %d, but last encountered was: %d",
 				mReadCount, sampleData->mId)
 		}
-		if (mShouldLog) { LOG(INFO, LM_APP, "read: %d", mReadCount); }
+		if (mShouldLog) { LOG(FASTQ_INFO, LM_APP, "read: %d", mReadCount); }
 		mReadCount++;
 	}
 
@@ -61,7 +61,7 @@ public:
 
 int main(int argc, const char** argv)
 {
-	FastQ::SetGlobalLogLevel(DEBUG);
+	FastQ::SetGlobalLogLevel(FASTQ_DEBUG);
 	if (argc < 2 || argc > 3)
 	{
 		std::cout << "Usage: " << argv[0] << " [run_duration] \"--log\" (optional) "<< std::endl;
@@ -76,7 +76,7 @@ int main(int argc, const char** argv)
 		shouldLog = true;
 	}
 
-	LOG(INFO, LM_APP, "starting test consumer app, duration: %d sec, logging_enabled: %d",
+	LOG(FASTQ_INFO, LM_APP, "starting test consumer app, duration: %d sec, logging_enabled: %d",
 		duration.count(), shouldLog);
 
 	Handler handler {shouldLog};
@@ -88,7 +88,7 @@ int main(int argc, const char** argv)
 	std::signal(SIGTERM, [](int signal) { Shutdown(); });
 
 	consumer.Start();
-	LOG(INFO, LM_APP, "reading data..");
+	LOG(FASTQ_INFO, LM_APP, "reading data..");
 
 	TSCClock::Initialise();
 	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
@@ -104,12 +104,12 @@ int main(int argc, const char** argv)
 	}
 	catch (const std::runtime_error& error)
 	{
-		LOG(ERROR, LM_APP, "consumer crashed with error: %s", error.what());
+		LOG(FASTQ_ERROR, LM_APP, "consumer crashed with error: %s", error.what());
 	}
 
 	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(TSCClock::Now() - TSCClock::FromCycles(start));
-	LOG(INFO, LM_APP, "total read count: %llu over %d ms", handler.mReadCount, realDuration.count());
+	LOG(FASTQ_INFO, LM_APP, "total read count: %llu over %d ms", handler.mReadCount, realDuration.count());
 	double mbPerSec = (handler.mReadCount * sizeof(SampleData) * 1.0) / (1024.0 * 1024.0) / duration.count();
-	LOG(INFO, LM_APP, "[read_metric] {\"mb_per_sec\": %f, \"finished\": %d}", mbPerSec, !handler.mExitedOnError);
+	LOG(FASTQ_INFO, LM_APP, "[read_metric] {\"mb_per_sec\": %f, \"finished\": %d}", mbPerSec, !handler.mExitedOnError);
 	return 1;
 }

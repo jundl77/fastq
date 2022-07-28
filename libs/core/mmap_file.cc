@@ -27,7 +27,7 @@ MmappedFile::~MmappedFile()
 void MmappedFile::Create(int initialSize)
 {
 	THROW_IF(mIsMapped, "cannot create a new shm file while there is already a file mapped")
-	LOG(INFO, LM_MMAP, "creating %s with initial size of %d", mShmFilename.c_str(), initialSize);
+	LOG(FASTQ_INFO, LM_MMAP, "creating %s with initial size of %d", mShmFilename.c_str(), initialSize);
 
 	// open file
 	mProtMode = MmapProtMode::READ_WRITE;
@@ -36,7 +36,7 @@ void MmappedFile::Create(int initialSize)
 	// grow file to initial size
 	if (-1 == ftruncate(mFd, initialSize))
 	{
-		LOG(ERROR, LM_MMAP, "ftruncate failed, closing file, errno=%s (%d)", std::strerror(errno), errno);
+		LOG(FASTQ_ERROR, LM_MMAP, "ftruncate failed, closing file, errno=%s (%d)", std::strerror(errno), errno);
 		CloseFile();
 		THROW_IF(true, "unable to grow file to specified size: %d", initialSize)
 	}
@@ -45,7 +45,7 @@ void MmappedFile::Create(int initialSize)
 void MmappedFile::Mmap(int size, MmapProtMode prot)
 {
 	THROW_IF(mIsMapped, "cannot map shm file, file is already mapped")
-	LOG(INFO, LM_MMAP, "mapping %s to memory with size %d", mShmFilename.c_str(), size);
+	LOG(FASTQ_INFO, LM_MMAP, "mapping %s to memory with size %d", mShmFilename.c_str(), size);
 
 	// make sure file exists
 	if (0 == mFd)
@@ -57,7 +57,7 @@ void MmappedFile::Mmap(int size, MmapProtMode prot)
 	void* addr = mmap(NULL, size, MmapProtModeToProt(prot), MAP_SHARED, mFd, 0);
 	if (MAP_FAILED == addr)
 	{
-		LOG(ERROR, LM_MMAP, "mmap failed, closing file, errno=%s (%d)", std::strerror(errno), errno);
+		LOG(FASTQ_ERROR, LM_MMAP, "mmap failed, closing file, errno=%s (%d)", std::strerror(errno), errno);
 		CloseFile();
 		THROW_IF(true, "error mapping file to memory")
 	}
@@ -66,7 +66,7 @@ void MmappedFile::Mmap(int size, MmapProtMode prot)
 	mMappedSize = size;
 	mIsMapped = true;
 	mProtMode = prot;
-	LOG(INFO, LM_MMAP, "mapped %s to memory successfully", mShmFilename.c_str());
+	LOG(FASTQ_INFO, LM_MMAP, "mapped %s to memory successfully", mShmFilename.c_str());
 }
 
 void MmappedFile::Munmap()
@@ -74,14 +74,14 @@ void MmappedFile::Munmap()
 	THROW_IF(!mIsMapped, "cannot unmap shm file that is not mapped")
 	if (-1 == munmap(mAddr, mMappedSize))
 	{
-		LOG(ERROR, LM_MMAP, "munmap failed, closing file, errno=%s (%d)", std::strerror(errno), errno);
+		LOG(FASTQ_ERROR, LM_MMAP, "munmap failed, closing file, errno=%s (%d)", std::strerror(errno), errno);
 		CloseFile();
 		THROW_IF(true, "error unmmapping file");
 	}
 	mAddr = NULL;
 	mMappedSize = 0;
 	mIsMapped = false;
-	LOG(INFO, LM_MMAP, "unmapped %s from memory successfully", mShmFilename.c_str());
+	LOG(FASTQ_INFO, LM_MMAP, "unmapped %s from memory successfully", mShmFilename.c_str());
 }
 
 void MmappedFile::Close()
@@ -116,7 +116,7 @@ void MmappedFile::CloseFile()
 	{
 		int res = shm_unlink(mShmFilename.c_str());
 		THROW_IF(0 != res, "shm_unlink failed, errno=%s (%d)", std::strerror(errno), errno);
-		LOG(INFO, LM_MMAP, "shm_unlinked %s from memory successfully", mShmFilename.c_str());
+		LOG(FASTQ_INFO, LM_MMAP, "shm_unlinked %s from memory successfully", mShmFilename.c_str());
 	}
 	close(mFd);
 	mIsOpen = false;

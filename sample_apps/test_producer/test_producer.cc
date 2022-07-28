@@ -17,15 +17,15 @@ Producer* globalProducer;
 
 void Shutdown()
 {
-	LOG(INFO, LM_APP, "producer shutting down clean");
+	LOG(FASTQ_INFO, LM_APP, "producer shutting down clean");
 	globalProducer->Shutdown();
-	LOG(INFO, LM_APP, "clean shutdown success");
+	LOG(FASTQ_INFO, LM_APP, "clean shutdown success");
 	std::exit(1);
 }
 
 int main(int argc, const char** argv)
 {
-	FastQ::SetGlobalLogLevel(DEBUG);
+	FastQ::SetGlobalLogLevel(FASTQ_INFO);
 
 	if (argc < 2 || argc > 4)
 	{
@@ -53,7 +53,7 @@ int main(int argc, const char** argv)
 		i += 1;
 	}
 
-	LOG(INFO, LM_APP, "starting test producer app, duration: %d sec, logging_enabled: %d, go_slow: %d",
+	LOG(FASTQ_INFO, LM_APP, "starting test producer app, duration: %d sec, logging_enabled: %d, go_slow: %d",
 		duration.count(), shouldLog, goSlow);
 
 	int size = 1024 * 1024 * 1024;
@@ -72,7 +72,7 @@ int main(int argc, const char** argv)
 		data.mData[i] = i;
 	}
 
-	LOG(INFO, LM_APP, "writing data..");
+	LOG(FASTQ_INFO, LM_APP, "writing data..");
 
 	TSCClock::Initialise();
 	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
@@ -84,14 +84,14 @@ int main(int argc, const char** argv)
 		data.mId = writeCount;
 		producer.Push(1, &data, sizeof(data));
 		writeCount++;
-		if (shouldLog) { LOG(INFO, LM_APP, "wrote: %llu", writeCount); }
+		if (shouldLog) { LOG(FASTQ_INFO, LM_APP, "wrote: %llu", writeCount); }
 		if (goSlow) { std::this_thread::sleep_for(1ms); }
 	}
 
 	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(TSCClock::Now() - TSCClock::FromCycles(start));
-	LOG(INFO, LM_APP, "total write count: %llu over %d ms", writeCount, realDuration.count());
+	LOG(FASTQ_INFO, LM_APP, "total write count: %llu over %d ms", writeCount, realDuration.count());
 	double mbPerSec = (writeCount * sizeof(data) * 1.0) / (1024.0 * 1024.0) / duration.count();
-	LOG(INFO, LM_APP, "[write_metric] {\"mb_per_sec\": %f, \"finished\": 1}", mbPerSec);
+	LOG(FASTQ_INFO, LM_APP, "[write_metric] {\"mb_per_sec\": %f, \"finished\": 1}", mbPerSec);
 
 	return 1;
 }

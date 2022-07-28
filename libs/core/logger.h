@@ -8,10 +8,10 @@
 
 namespace FastQ {
 
-#define DEBUG 0
-#define INFO  1
-#define WARN  2
-#define ERROR 3
+#define FASTQ_DEBUG 0
+#define FASTQ_INFO  1
+#define FASTQ_WARN  2
+#define FASTQ_ERROR 3
 
 using LogModule = StrongTypedef<std::string, struct LogModuleTag>;
 
@@ -51,25 +51,25 @@ inline decltype(auto) GetLocalTime()
 #define LOG(level, module, ...) \
 	do \
 	{ \
-		if (level == DEBUG && GetGlobalLogLevel() == DEBUG) \
+		if (level == FASTQ_DEBUG && GetGlobalLogLevel() == FASTQ_DEBUG) \
 		{ \
 			std::cout << GetLocalTime() << " [Debug ] [" << module << "] "; \
 			std::printf(__VA_ARGS__); \
 			std::cout << std::endl; \
 		} \
-		else if (level == INFO) \
+		else if (level == FASTQ_INFO) \
 		{ \
 			std::cout << GetLocalTime() << " [Info ] [" << module << "] "; \
 			std::printf(__VA_ARGS__); \
 			std::cout << std::endl; \
 		} \
-		else if (level == WARN) \
+		else if (level == FASTQ_WARN) \
 		{ \
 			std::cout << GetLocalTime() << " [Warn ] [" << module << "] "; \
 			std::printf(__VA_ARGS__); \
 			std::cout << std::endl; \
 		} \
-		else if (level == ERROR) \
+		else if (level == FASTQ_ERROR) \
 		{ \
 			std::cout << GetLocalTime() << " [Error ] [" << module << "] "; \
 			std::printf(__VA_ARGS__); \

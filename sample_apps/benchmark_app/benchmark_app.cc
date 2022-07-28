@@ -21,7 +21,7 @@ int main(int argc, const char** argv)
 	}
 
 	std::chrono::seconds duration = std::chrono::seconds(std::atoi(argv[1]));
-	LOG(INFO, LM_APP, "starting benchmarking app, doing memcopies for %d sec and measuring throughput",
+	LOG(FASTQ_INFO, LM_APP, "starting benchmarking app, doing memcopies for %d sec and measuring throughput",
 		duration.count());
 
 	SampleData data;
@@ -30,7 +30,7 @@ int main(int argc, const char** argv)
 		data.mData[i] = i;
 	}
 
-	LOG(INFO, LM_APP, "doing memcopies..");
+	LOG(FASTQ_INFO, LM_APP, "doing memcopies..");
 	TSCClock::Initialise();
 	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
 	const uint64_t start = TSCClock::NowInCycles();
@@ -44,9 +44,9 @@ int main(int argc, const char** argv)
 		copyCount++;
 	}
 
-	LOG(INFO, LM_APP, "total memcopies: %llu", copyCount);
+	LOG(FASTQ_INFO, LM_APP, "total memcopies: %llu", copyCount);
 	double mbPerSec = (copyCount * sizeof(data) * 1.0) / (1024.0 * 1024.0) / duration.count();
-	LOG(INFO, LM_APP, "[benchmark_metric] {\"mb_per_sec\": %f, \"finished\": 1}", mbPerSec);
+	LOG(FASTQ_INFO, LM_APP, "[benchmark_metric] {\"mb_per_sec\": %f, \"finished\": 1}", mbPerSec);
 
 	return 1;
 }

@@ -15,7 +15,7 @@ Consumer::Consumer(std::string shmFilename, IFastQHandler& handler)
 void Consumer::Start()
 {
 	THROW_IF(mConnected, "fastq was already started, it can only be started once")
-	LOG(INFO, LM_CONSUMER, "starting consumer")
+	LOG(FASTQ_INFO, LM_CONSUMER, "starting consumer")
 	mFastQBuffer = std::make_unique<MmappedFile>(mShmFilename);
 
 	// read header for size
@@ -34,9 +34,9 @@ void Consumer::Start()
 	const uint64_t lastWriteInfo = mFastQueue->mLastWriteInfo.load();
 	mWrapAroundCounter = GetWrapAroundCount(lastWriteInfo);
 	mLastReadPosition = GetLastWritePosition(lastWriteInfo);
-	LOG(INFO, LM_CONSUMER, "position in queue:")
-	LOG(INFO, LM_CONSUMER, "  wrap around count:  %d", mWrapAroundCounter)
-	LOG(INFO, LM_CONSUMER, "  last read position: %d", mLastReadPosition)
+	LOG(FASTQ_INFO, LM_CONSUMER, "position in queue:")
+	LOG(FASTQ_INFO, LM_CONSUMER, "  wrap around count:  %d", mWrapAroundCounter)
+	LOG(FASTQ_INFO, LM_CONSUMER, "  last read position: %d", mLastReadPosition)
 
 	mConnected = true;
 	mHandler.OnConnected();
@@ -96,11 +96,11 @@ uint32_t Consumer::ReadData(uint32_t lastReadPosition, void* data, uint32_t size
 		mWrapAroundCounter++;
 		readAddr = payload;
 		endReadPosition = size;
-		DEBUG_LOG(INFO, LM_CONSUMER, "consumer wrapped around, wrap-around counter: %d", mWrapAroundCounter)
+		DEBUG_LOG(FASTQ_INFO, LM_CONSUMER, "consumer wrapped around, wrap-around counter: %d", mWrapAroundCounter)
 	}
 
 	std::memcpy(data, readAddr, size);
-	DEBUG_LOG(INFO, LM_CONSUMER, "[consumer state] last read position %d, wrap-around counter: %d",
+	DEBUG_LOG(FASTQ_INFO, LM_CONSUMER, "[consumer state] last read position %d, wrap-around counter: %d",
 			  endReadPosition, mWrapAroundCounter)
 	return endReadPosition;
 }

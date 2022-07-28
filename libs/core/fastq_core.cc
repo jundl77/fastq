@@ -22,13 +22,13 @@ void FastQCore::Init(Idl::FastQueue* fastQueue)
 
 void FastQCore::LogFastQHeader() const
 {
-	LOG(INFO, mLogModule, "fastq header: ");
-	LOG(INFO, mLogModule, "  protocol name:   %s", mFastQueue->mHeader.mProtocolName)
-	LOG(INFO, mLogModule, "  major version:   %d", mFastQueue->mHeader.mVersionMajor)
-	LOG(INFO, mLogModule, "  minor version:   %d", mFastQueue->mHeader.mVersionMinor)
-	LOG(INFO, mLogModule, "  magic number:    %d", mFastQueue->mHeader.mMagicNumber)
-	LOG(INFO, mLogModule, "  file size:       %d", mFastQueue->mHeader.mFileSize)
-	LOG(INFO, mLogModule, "  payload size:    %d", mFastQueue->mHeader.mPayloadSize)
+	LOG(FASTQ_INFO, mLogModule, "fastq header: ");
+	LOG(FASTQ_INFO, mLogModule, "  protocol name:   %s", mFastQueue->mHeader.mProtocolName)
+	LOG(FASTQ_INFO, mLogModule, "  major version:   %d", mFastQueue->mHeader.mVersionMajor)
+	LOG(FASTQ_INFO, mLogModule, "  minor version:   %d", mFastQueue->mHeader.mVersionMinor)
+	LOG(FASTQ_INFO, mLogModule, "  magic number:    %d", mFastQueue->mHeader.mMagicNumber)
+	LOG(FASTQ_INFO, mLogModule, "  file size:       %d", mFastQueue->mHeader.mFileSize)
+	LOG(FASTQ_INFO, mLogModule, "  payload size:    %d", mFastQueue->mHeader.mPayloadSize)
 }
 
 }
