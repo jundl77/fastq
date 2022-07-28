@@ -38,7 +38,7 @@ class BasicTests : public IFastQHandler, public ::testing::Test
 public:
 	BasicTests()
 	{
-		FastQ::SetGlobalLogLevel(DEBUG);
+		FastQ::SetGlobalLogLevel(FASTQ_DEBUG);
 	}
 
 protected:
