@@ -94,12 +94,13 @@ int main(int argc, const char** argv)
 	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
 	const uint64_t start = TSCClock::NowInCycles();
 
-	uint64_t writeCount = 0;
+	uint64_t cycleCount = 0;
 	try
 	{
-		while (consumer.IsConnected() && TSCClock::NowInCycles() - start < durationInCycles)
+		while (cycleCount % 10000 && consumer.IsConnected() && TSCClock::NowInCycles() - start < durationInCycles)
 		{
 			consumer.Poll();
+			cycleCount += 1;
 		}
 	}
 	catch (const std::runtime_error& error)

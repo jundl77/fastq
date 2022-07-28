@@ -79,7 +79,7 @@ int main(int argc, const char** argv)
 	const uint64_t start = TSCClock::NowInCycles();
 
 	uint64_t writeCount = 0;
-	while (TSCClock::NowInCycles() - start < durationInCycles)
+	while (writeCount % 10000 && TSCClock::NowInCycles() - start < durationInCycles)
 	{
 		data.mId = writeCount;
 		producer.Push(1, &data, sizeof(data));
