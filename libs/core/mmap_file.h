@@ -6,7 +6,7 @@ namespace FastQ {
 
 enum MmapProtMode
 {
-	NO_SET = 1,
+	NOT_SET = 1,
 	READ_WRITE,
 	READ_ONLY
 };
@@ -37,7 +37,7 @@ private:
 	int mMappedSize {0};
 	bool mIsOpen {false};
 	bool mIsMapped {false};
-	MmapProtMode mProtMode {MmapProtMode::NO_SET};
+	MmapProtMode mProtMode {MmapProtMode::NOT_SET};
 };
 
 }
