@@ -63,16 +63,16 @@ int main(int argc, const char** argv)
 	FastQ::SetGlobalLogLevel(DEBUG);
 	if (argc < 2 || argc > 3)
 	{
-		std::cout << "Usage: " << argv[0] << " [run_duration] \"no_log\" (optional) "<< std::endl;
+		std::cout << "Usage: " << argv[0] << " [run_duration] \"--log\" (optional) "<< std::endl;
 		return 1;
 	}
 
 	std::chrono::seconds duration = std::chrono::seconds(std::atoi(argv[1]));
 
-	bool shouldLog = true;
-	if (argc == 3 && std::string(argv[2]) == "no_log")
+	bool shouldLog = false;
+	if (argc == 3 && std::string(argv[2]) == "--log")
 	{
-		shouldLog = false;
+		shouldLog = true;
 	}
 
 	LOG(INFO, LM_APP, "starting test consumer app, duration: %d sec, logging_enabled: %d",

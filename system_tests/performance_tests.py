@@ -10,22 +10,25 @@ all_tests: List = list()
 failed_tests: List = list()
 
 
-async def run(release_build_dir: str, num_consumer_cores: int, num_consumers: int):
+async def run(release_build_dir: str,
+              num_consumer_cores: int,
+              num_consumers: int,
+              first_core: int):
     global performance_metrics
     performance_metrics = dict()
     benchmark_binary = str(Path(release_build_dir) / 'sample_apps/benchmark_app/benchmark_app')
     producer_binary = str(Path(release_build_dir) / 'sample_apps/test_producer/test_producer_app')
     consumer_binary = str(Path(release_build_dir) / 'sample_apps/test_consumer/test_consumer_app')
 
-    benchmark_cmd = f'{set_cpu_affinity(0)} {benchmark_binary} 10'
-    producer_cmd = f'{set_cpu_affinity(1)} {producer_binary} 11 no_log'
+    benchmark_cmd = f'{set_cpu_affinity(first_core)} {benchmark_binary} 10'
+    producer_cmd = f'{set_cpu_affinity(first_core + 1)} {producer_binary} 11 no_log'
 
     coros = list()
     coros += [run_command(benchmark_cmd, 'benchmark', is_consumer=False)]
     coros += [run_command(producer_cmd, 'producer', is_consumer=False)]
 
     for i in range(num_consumers):
-        core = (i % num_consumer_cores) + 2
+        core = (i % num_consumer_cores) + 2 + first_core
         consumer_cmd = f'{set_cpu_affinity(core)} {consumer_binary} 10 no_log'
         coros.append(run_command(consumer_cmd, f'consumer-{i + 1}', is_consumer=True))
 
@@ -141,9 +144,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('release_build_dir')
     parser.add_argument('num_cores')
+    parser.add_argument('start_at_core')
     args = parser.parse_args()
 
     assert int(args.num_cores) >= 3, "at least 3 cores are required for the performance tests"
+    assert int(args.start_at_core) >= 0, "start_at_core has to be greater than 0"
 
     print("starting fastq performance tests")
     if not support_cpu_affinity():
@@ -151,12 +156,14 @@ def main():
         print(" ** WARNING ** : CPU affinity is not supported on this system, benchmarks will be near useless!")
         print("======================================================================================")
 
+    num_cores: int = int(args.num_cores)
+    first_core: int = int(args.start_at_core)
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 1))
-        #loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 5))
-        #loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 10))
-        #loop.run_until_complete(run(args.release_build_dir, int(args.num_cores) - 2, 100))
+        loop.run_until_complete(run(args.release_build_dir, num_cores - 2, 1, first_core))
+        loop.run_until_complete(run(args.release_build_dir, num_cores - 2, 5, first_core))
+        loop.run_until_complete(run(args.release_build_dir, num_cores - 2, 10, first_core))
+        loop.run_until_complete(run(args.release_build_dir, num_cores - 2, num_cores - 2, first_core))
         print_final_results()
     except KeyboardInterrupt:
         print('Stopped (KeyboardInterrupt)')

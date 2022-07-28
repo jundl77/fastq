@@ -26,22 +26,34 @@ int main(int argc, const char** argv)
 {
 	FastQ::SetGlobalLogLevel(DEBUG);
 
-	if (argc < 2 || argc > 3)
+	if (argc < 2 || argc > 4)
 	{
-		std::cout << "Usage: " << argv[0] << " [run_duration] \"no_log\" (optional) "<< std::endl;
+		std::cout << "Usage: " << argv[0] << " [run_duration] \"--log\" (optional), \"--slow\" (optional)"<< std::endl;
 		return 1;
 	}
 
 	std::chrono::seconds duration = std::chrono::seconds(std::atoi(argv[1]));
 
-	bool shouldLog = true;
-	if (argc == 3 && std::string(argv[2]) == "no_log")
+	bool shouldLog = false;
+	bool goSlow = false;
+
+	int i = 2;
+	while (i < argc)
 	{
-		shouldLog = false;
+		const std::string arg {argv[i]};
+		if (arg == "--log")
+		{
+			shouldLog = true;
+		}
+		if (arg == "--slow")
+		{
+			goSlow = true;
+		}
+		i += 1;
 	}
 
-	LOG(INFO, LM_APP, "starting test producer app, duration: %d sec, logging_enabled: %d",
-		duration.count(), shouldLog);
+	LOG(INFO, LM_APP, "starting test producer app, duration: %d sec, logging_enabled: %d, go_slow: %d",
+		duration.count(), shouldLog, goSlow);
 
 	int size = 1024 * 1024 * 1024;
 	Producer producer {"test_shm", size};
@@ -70,7 +82,7 @@ int main(int argc, const char** argv)
 		producer.Push(1, &data, sizeof(data));
 		writeCount++;
 		if (shouldLog) { LOG(INFO, LM_APP, "wrote: %llu", writeCount); }
-		//std::this_thread::sleep_for(1ms);
+		if (goSlow) { std::this_thread::sleep_for(1ms); }
 	}
 
 	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);

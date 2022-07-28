@@ -5,7 +5,7 @@ file(GLOB sources *.cc)
 
 add_library(${TARGET_NAME} ${headers} ${sources})
 
-if (!MACOSX)
+if (NOT MACOSX)
     target_link_libraries(${TARGET_NAME} PUBLIC rt)
 endif()
 
