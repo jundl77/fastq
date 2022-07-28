@@ -57,19 +57,19 @@ inline decltype(auto) GetLocalTime()
 			std::printf(__VA_ARGS__); \
 			std::cout << std::endl; \
 		} \
-		else if (level == FASTQ_INFO) \
+		else if (level == FASTQ_INFO && GetGlobalLogLevel() <= FASTQ_INFO) \
 		{ \
 			std::cout << GetLocalTime() << " [Info ] [" << module << "] "; \
 			std::printf(__VA_ARGS__); \
 			std::cout << std::endl; \
 		} \
-		else if (level == FASTQ_WARN) \
+		else if (level == FASTQ_WARN && GetGlobalLogLevel() <= FASTQ_WARN) \
 		{ \
 			std::cout << GetLocalTime() << " [Warn ] [" << module << "] "; \
 			std::printf(__VA_ARGS__); \
 			std::cout << std::endl; \
 		} \
-		else if (level == FASTQ_ERROR) \
+		else if (level == FASTQ_ERROR && GetGlobalLogLevel() <= FASTQ_ERROR) \
 		{ \
 			std::cout << GetLocalTime() << " [Error ] [" << module << "] "; \
 			std::printf(__VA_ARGS__); \
