@@ -100,7 +100,7 @@ int main(int argc, const char** argv)
 	bool isRunning = true;
 	try
 	{
-		while (isRunning)
+		while (isRunning && consumer.IsConnected())
 		{
 			if (cycleCount % 10000)
 			{
