@@ -16,7 +16,7 @@ void FastQCore::Init(Idl::FastQueue* fastQueue)
 {
 	mFastQueue = fastQueue;
 	mPayloadSize = mFastQueue->mHeader.mPayloadSize;
-	mPayload = reinterpret_cast<uint8_t*>(mFastQueue) + Idl::FASTQ_SIZE_WITHOUT_PAYLOAD;
+	mPayload = mFastQueue->mData;
 	LogFastQHeader();
 }
 

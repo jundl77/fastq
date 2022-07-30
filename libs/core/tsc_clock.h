@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <stdexcept>
 
+namespace FastQ {
+
 class TSCClock
 {
 public:
@@ -111,3 +113,4 @@ inline void TSCClock::Initialise()
 	tscFreq = static_cast<double>(cycles) / static_cast<double>(duration_s.count());
 }
 
+}

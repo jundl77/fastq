@@ -39,12 +39,12 @@ void Producer::Push(uint32_t type, void* data, uint32_t size)
 {
 	// dont increment until after we wrote to the queue both times
 	const Idl::FramingHeader frame {type, size};
-	const auto writePositionAfterFrame = WriteData(mLastWritePosition, (void*)&frame, Idl::FASTQ_FRAMING_HEADER_SIZE);
+	const auto writePositionAfterFrame = WriteData(mLastWritePosition, (void*)&frame, sizeof(Idl::FramingHeader));
 	const auto lastWritePosition = WriteData(writePositionAfterFrame, data, size);
 
 	// update now
 	mLastWritePosition = lastWritePosition;
-	mFastQueue->mLastWriteInfo.store(CreateLastWriteInfo(mLastWritePosition, mWrapAroundCounter));
+	mFastQueue->mLastWriteInfo.store(CreateLastWriteInfo(mLastWritePosition, mWrapAroundCounter), std::memory_order_release);
 }
 
 uint32_t Producer::WriteData(uint32_t lastWritePosition, void* data, uint32_t size)

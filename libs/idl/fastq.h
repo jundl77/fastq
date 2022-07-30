@@ -2,21 +2,33 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <atomic>
 
 #define FASTQ_PROTOCOL_NAME "fastq_protocol"
 
 namespace FastQ::Idl {
 
-static constexpr size_t FASTQ_FRAMING_HEADER_SIZE = 8;
-static constexpr size_t FASTQ_HEADER_SIZE = 40;
-static constexpr size_t FASTQ_SIZE_WITHOUT_PAYLOAD = 64;
+static constexpr uint8_t CACHE_LINE_SIZE = 64;
+static constexpr uint32_t FASTQ_SIZE_WITHOUT_PAYLOAD = 128;
 static constexpr uint32_t FASTQ_MAJOR_VERSION = 1;
 static constexpr uint32_t FASTQ_MINOR_VERSION = 1;
 
+template<typename T>
+constexpr bool IsAligned(const T* t)
+{
+	constexpr auto mask = alignof(T) - 1;
+	return (reinterpret_cast<std::uintptr_t>(t) & mask) == 0;
+}
+
+constexpr bool IsAligned(const size_t size)
+{
+	return size % CACHE_LINE_SIZE == 0;
+}
+
 #pragma pack(push, 1)
 
-struct FramingHeader
+struct alignas(CACHE_LINE_SIZE) FramingHeader
 {
 	FramingHeader() = default;
 	FramingHeader(uint32_t type, uint32_t size)
@@ -27,14 +39,14 @@ struct FramingHeader
 	uint32_t mType {0};
 	uint32_t mSize {0};
 };
-static_assert(sizeof(FramingHeader) == FASTQ_FRAMING_HEADER_SIZE);
+static_assert(IsAligned(sizeof(FramingHeader)));
 
-struct Header
+struct alignas(CACHE_LINE_SIZE) Header
 {
 	Header(uint64_t magicNumber, uint32_t fileSize)
 		: mMagicNumber(magicNumber)
 		, mFileSize(fileSize)
-		, mPayloadSize(mFileSize - Idl::FASTQ_SIZE_WITHOUT_PAYLOAD)
+		, mPayloadSize(mFileSize - 128)
 	{}
 
 	const char mProtocolName[16] = FASTQ_PROTOCOL_NAME;
@@ -44,26 +56,32 @@ struct Header
 	const uint32_t mFileSize {0};
 	const uint32_t mPayloadSize {0};
 };
-static_assert(sizeof(Header) == FASTQ_HEADER_SIZE);
-static_assert(sizeof(Header) % 8 == 0); // align to 8 bytes
+static_assert(IsAligned(sizeof(Header)));
 
-struct FastQueue
+struct alignas(CACHE_LINE_SIZE) FastQueue
 {
 	FastQueue(uint64_t magicNumber, uint32_t fileSize)
 		: mHeader(magicNumber, fileSize)
-	{}
+	{
+		if (!IsAligned(this))
+		{
+			std::runtime_error("expected aligned address, got " + std::to_string(reinterpret_cast<std::ptrdiff_t>(this)));
+		}
+	}
+
+	~FastQueue()
+	{
+		mLastWriteInfo.store(0, std::memory_order_release);
+	}
 
 	const Header mHeader;
-	uint64_t mPadding1;
-	uint64_t mPadding2;
 
 	// bits 0-31 contain last write location, bits 32-28 contain wrap around count
 	std::atomic<uint64_t> mLastWriteInfo {0};
 
-	// data is here
+	uint8_t mData[]; // size 0 array, data of N bytes follows
 };
-static_assert(sizeof(FastQueue) == FASTQ_SIZE_WITHOUT_PAYLOAD);
-static_assert(sizeof(FastQueue) % 8 == 0); // align to 8 bytes
+static_assert(IsAligned(sizeof(FastQueue)));
 
 #pragma pack(pop)
 

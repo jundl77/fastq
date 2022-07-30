@@ -3,6 +3,8 @@
 #include <utility>
 #include <functional>
 
+namespace FastQ {
+
 template <class T, class Tag>
 class StrongTypedef
 {
@@ -42,14 +44,15 @@ Stream& operator<<(Stream& stream, const StrongTypedef<T, Tag>& x)
 	return stream;
 }
 
+}
 
 namespace std
 {
 
 template <typename T, typename Tag>
-struct hash<StrongTypedef<T, Tag>>
+struct hash<FastQ::StrongTypedef<T, Tag>>
 {
-	std::size_t operator()(const StrongTypedef<T, Tag>& x) const
+	std::size_t operator()(const FastQ::StrongTypedef<T, Tag>& x) const
 	{
 		return std::hash<T>{}(x.mValue);
 	}

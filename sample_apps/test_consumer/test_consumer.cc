@@ -40,7 +40,7 @@ public:
 
 	void OnData(u_int32_t type, void* data, u_int32_t size) override
 	{
-		auto* sampleData = (SampleData*) data;
+		const SampleData* sampleData = (SampleData*) data;
 		if (mReadCount == 0)
 		{
 			mReadCount = sampleData->mId;
@@ -115,9 +115,10 @@ int main(int argc, const char** argv)
 		LOG(FASTQ_ERROR, LM_APP, "consumer crashed with error: %s", error.what());
 	}
 
-	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(TSCClock::Now() - TSCClock::FromCycles(start));
+	const std::chrono::milliseconds realDuration =
+			std::chrono::duration_cast<std::chrono::milliseconds>(TSCClock::Now() - TSCClock::FromCycles(start));
 	LOG(FASTQ_INFO, LM_APP, "total read count: %llu over %d ms", handler.mReadCount, realDuration.count());
-	double mbPerSec = (handler.mReadCount * sizeof(SampleData) * 1.0) / (1024.0 * 1024.0) / duration.count();
+	const double mbPerSec = (handler.mReadCount * sizeof(SampleData) * 1.0) / (1024.0 * 1024.0) / duration.count();
 	LOG(FASTQ_INFO, LM_APP, "[read_metric] {\"mb_per_sec\": %f, \"finished\": %d}", mbPerSec, !handler.mExitedOnError);
 	return 1;
 }

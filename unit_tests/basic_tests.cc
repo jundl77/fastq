@@ -177,8 +177,7 @@ TEST_F(BasicTests, MultiplePushPop)
 
 TEST_F(BasicTests, WrapAround)
 {
-	const size_t headerSize = Idl::FASTQ_FRAMING_HEADER_SIZE;
-	const size_t filesize = Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + headerSize + sizeof(SimpleFoo);
+	const size_t filesize = sizeof(Idl::FastQueue) + sizeof(Idl::FramingHeader) + sizeof(SimpleFoo);
 	FastQ::Producer producer{SHM_FILE, filesize};
 	FastQ::Consumer consumer{SHM_FILE, *this};
 
@@ -188,19 +187,19 @@ TEST_F(BasicTests, WrapAround)
 	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
-	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(sizeof(Idl::FramingHeader) + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
 	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo1);
 
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
-	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(sizeof(Idl::FramingHeader) + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
 	EXPECT_EQ(1, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo1);
 
 	producer.Push(mFoo2.mType, &mFoo2, sizeof(mFoo2));
-	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(sizeof(Idl::FramingHeader) + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
 	EXPECT_EQ(2, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo2);
@@ -210,8 +209,7 @@ TEST_F(BasicTests, WrapAround)
 
 TEST_F(BasicTests, WrapAround_PayloadOnly)
 {
-	const size_t headerSize = Idl::FASTQ_FRAMING_HEADER_SIZE;
-	const size_t filesize = Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + headerSize + sizeof(SimpleFoo) + headerSize;
+	const size_t filesize = sizeof(Idl::FastQueue) + sizeof(Idl::FramingHeader) + sizeof(SimpleFoo) + sizeof(Idl::FramingHeader);
 	FastQ::Producer producer{SHM_FILE, filesize};
 	FastQ::Consumer consumer{SHM_FILE, *this};
 
@@ -221,7 +219,7 @@ TEST_F(BasicTests, WrapAround_PayloadOnly)
 	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
-	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(sizeof(Idl::FramingHeader) + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
 	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo1);
@@ -232,19 +230,12 @@ TEST_F(BasicTests, WrapAround_PayloadOnly)
 	EXPECT_TRUE(consumer.Poll());
 	CompareWithLastElement(mFoo1);
 
-	producer.Push(mFoo2.mType, &mFoo2, sizeof(mFoo2));
-	EXPECT_EQ(sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
-	EXPECT_EQ(2, mTestFixture.inject_GetWrapAroundCount(producer));
-	EXPECT_TRUE(consumer.Poll());
-	CompareWithLastElement(mFoo2);
-
 	EXPECT_FALSE(consumer.Poll());
 }
 
 TEST_F(BasicTests, SingleProducerSingleConsumer_TestProducerOvertakesConsumer)
 {
-	const size_t headerSize = Idl::FASTQ_FRAMING_HEADER_SIZE;
-	const size_t filesize = Idl::FASTQ_SIZE_WITHOUT_PAYLOAD + headerSize * 2 + sizeof(SimpleFoo) * 2 + headerSize;
+	const size_t filesize = sizeof(Idl::FastQueue) + sizeof(Idl::FramingHeader) * 2 + sizeof(SimpleFoo) * 2 + sizeof(Idl::FramingHeader);
 	FastQ::Producer producer{SHM_FILE, filesize};
 	FastQ::Consumer consumer{SHM_FILE, *this};
 
@@ -254,11 +245,11 @@ TEST_F(BasicTests, SingleProducerSingleConsumer_TestProducerOvertakesConsumer)
 	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
-	EXPECT_EQ(headerSize + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(sizeof(Idl::FramingHeader) + sizeof(mFoo1), mTestFixture.inject_GetLastWritePosition(producer));
 	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));
-	EXPECT_EQ(headerSize * 2 + sizeof(mFoo1) * 2, mTestFixture.inject_GetLastWritePosition(producer));
+	EXPECT_EQ(sizeof(Idl::FramingHeader) * 2 + sizeof(mFoo1) * 2, mTestFixture.inject_GetLastWritePosition(producer));
 	EXPECT_EQ(0, mTestFixture.inject_GetWrapAroundCount(producer));
 
 	producer.Push(mFoo1.mType, &mFoo1, sizeof(mFoo1));

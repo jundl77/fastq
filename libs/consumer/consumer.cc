@@ -19,7 +19,7 @@ void Consumer::Start()
 	mFastQBuffer = std::make_unique<MmappedFile>(mShmFilename);
 
 	// read header for size
-	mFastQBuffer->Mmap(Idl::FASTQ_HEADER_SIZE, MmapProtMode::READ_ONLY);
+	mFastQBuffer->Mmap(sizeof(Idl::Header), MmapProtMode::READ_ONLY);
 	mFastQueue = reinterpret_cast<Idl::FastQueue*>(mFastQBuffer->GetAddress());
 	ValidateHeader();
 	mFileSize = mFastQueue->mHeader.mFileSize;
@@ -67,7 +67,7 @@ bool Consumer::Poll()
 	// check to make sure we were not overtaken by the producer
 	if (!AssertInSync()) { return false; }
 	Idl::FramingHeader framingHeader;
-	mLastReadPosition = ReadData(mLastReadPosition, &framingHeader, Idl::FASTQ_FRAMING_HEADER_SIZE);
+	mLastReadPosition = ReadData(mLastReadPosition, &framingHeader, sizeof(Idl::FramingHeader));
   
 	// check to make sure we were not overtaken while reading the header
 	if (!AssertInSync()) { return false; }

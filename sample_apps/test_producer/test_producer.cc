@@ -33,7 +33,7 @@ int main(int argc, const char** argv)
 		return 1;
 	}
 
-	std::chrono::seconds duration = std::chrono::seconds(std::atoi(argv[1]));
+	const std::chrono::seconds duration = std::chrono::seconds(std::atoi(argv[1]));
 
 	bool shouldLog = false;
 	bool goSlow = false;
@@ -56,7 +56,7 @@ int main(int argc, const char** argv)
 	LOG(FASTQ_INFO, LM_APP, "starting test producer app, duration: %d sec, logging_enabled: %d, go_slow: %d",
 		duration.count(), shouldLog, goSlow);
 
-	int size = 1024 * 1024 * 1024;
+	const int size = 1024 * 1024 * 1024;
 	Producer producer {"test_shm", size};
 	globalProducer = &producer;
 
@@ -93,9 +93,10 @@ int main(int argc, const char** argv)
 		if (goSlow) { std::this_thread::sleep_for(1ms); }
 	}
 
-	auto realDuration = std::chrono::duration_cast<std::chrono::milliseconds>(TSCClock::Now() - TSCClock::FromCycles(start));
+	const std::chrono::milliseconds realDuration =
+			std::chrono::duration_cast<std::chrono::milliseconds>(TSCClock::Now() - TSCClock::FromCycles(start));
 	LOG(FASTQ_INFO, LM_APP, "total write count: %llu over %d ms", writeCount, realDuration.count());
-	double mbPerSec = (writeCount * sizeof(data) * 1.0) / (1024.0 * 1024.0) / duration.count();
+	const double mbPerSec = (writeCount * sizeof(data) * 1.0) / (1024.0 * 1024.0) / duration.count();
 	LOG(FASTQ_INFO, LM_APP, "[write_metric] {\"mb_per_sec\": %f, \"finished\": 1}", mbPerSec);
 
 	return 1;
