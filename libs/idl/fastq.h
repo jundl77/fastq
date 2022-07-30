@@ -46,13 +46,14 @@ struct alignas(CACHE_LINE_SIZE) Header
 	Header(uint64_t magicNumber, uint32_t fileSize)
 		: mMagicNumber(magicNumber)
 		, mFileSize(fileSize)
-		, mPayloadSize(mFileSize - 128)
+		, mPayloadSize(mFileSize - FASTQ_SIZE_WITHOUT_PAYLOAD)
 	{}
 
 	const char mProtocolName[16] = FASTQ_PROTOCOL_NAME;
 	const uint32_t mVersionMajor {FASTQ_MAJOR_VERSION};
 	const uint32_t mVersionMinor {FASTQ_MINOR_VERSION};
 	const uint64_t mMagicNumber {0};
+	const uint64_t mChecksum {0};
 	const uint32_t mFileSize {0};
 	const uint32_t mPayloadSize {0};
 };
@@ -79,7 +80,8 @@ struct alignas(CACHE_LINE_SIZE) FastQueue
 	// bits 0-31 contain last write location, bits 32-28 contain wrap around count
 	std::atomic<uint64_t> mLastWriteInfo {0};
 
-	uint8_t mData[]; // size 0 array, data of N bytes follows
+	// size 0 array, data of N bytes follows
+	uint8_t mData[];
 };
 static_assert(IsAligned(sizeof(FastQueue)));
 

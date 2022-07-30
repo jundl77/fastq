@@ -37,11 +37,11 @@ public:
 	bool Poll();
 
 	bool IsConnected() const { return mConnected; }
+	void ValidateHeader(); // should be called by client on a slow (e.g. 100ms) timer to make sure we are still in sync with producer
 
 private:
 	uint32_t ReadData(uint32_t lastReadPosition, void* data, uint32_t size);
 	bool AssertInSync();
-	void ValidateHeader();
 
 private:
 	std::string mShmFilename;
@@ -52,6 +52,7 @@ private:
 	std::vector<uint8_t> mCurrentReadBuffer;
 	uint32_t mFileSize {0};
 	uint32_t mPayloadSize {0};
+	uint64_t mMagicNumber {0};
 	uint32_t mWrapAroundCounter {0};
 	uint32_t mLastReadPosition {0};
 	bool mConnected {false};

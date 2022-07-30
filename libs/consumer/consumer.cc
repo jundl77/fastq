@@ -24,6 +24,7 @@ void Consumer::Start()
 	ValidateHeader();
 	mFileSize = mFastQueue->mHeader.mFileSize;
 	mPayloadSize = mFastQueue->mHeader.mPayloadSize;
+	mMagicNumber = mFastQueue->mHeader.mMagicNumber;
 
 	// re-map entire queue knowing size
 	mFastQBuffer->Munmap();
@@ -44,7 +45,6 @@ void Consumer::Start()
 
 void Consumer::Shutdown()
 {
-	THROW_IF(!mConnected, "fastq cannot be shutdown, it is not running")
 	mFastQBuffer->Close();
 	mConnected = false;
 }
@@ -126,7 +126,17 @@ bool Consumer::AssertInSync()
 
 void Consumer::ValidateHeader()
 {
-	//todo: validate header
+	THROW_IF(mFastQueue->mHeader.mVersionMajor != Idl::FASTQ_MAJOR_VERSION,
+			 "FastQueue protocol major version mismatch, producer has version %d, but consumer has version %d",
+			 mFastQueue->mHeader.mVersionMajor, Idl::FASTQ_MAJOR_VERSION);
+	THROW_IF(mFastQueue->mHeader.mVersionMinor < Idl::FASTQ_MAJOR_VERSION,
+			 "FastQueue protocol minor version mismatch, producer version is older than consumer, producer version: %d, consumer version: %d",
+			 mFastQueue->mHeader.mVersionMinor, Idl::FASTQ_MAJOR_VERSION);
+	if (mMagicNumber != 0)
+	{
+		THROW_IF(mFastQueue->mHeader.mMagicNumber != mMagicNumber,
+				"magic numbers between producer and consumer dont' match, was the producer restarted?");
+	}
 }
 
 }
