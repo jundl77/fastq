@@ -3,7 +3,7 @@ set(TARGET_NAME benchmark_app)
 file(GLOB headers *.h)
 file(GLOB sources *.cc)
 
-add_executable(${TARGET_NAME} ${headers} ${sources})
+add_executable(${TARGET_NAME} ${headers} ${sources} ../shared_lib/statistics.h)
 target_link_libraries(${TARGET_NAME}
         fastq_core_lib)
 

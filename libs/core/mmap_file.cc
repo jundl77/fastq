@@ -12,6 +12,10 @@
 
 namespace FastQ {
 
+#ifndef MAP_HUGETLB
+#define MAP_HUGETLB 0x40000 /* arch specific */
+#endif
+
 static const LogModule LM_MMAP {"FASTQ_MMAP"};
 
 MmappedFile::MmappedFile(std::string shmFilename)

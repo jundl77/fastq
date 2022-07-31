@@ -1,5 +1,6 @@
 #include <producer/producer.h>
 #include <sample_idl/sample_idl.h>
+#include <shared_lib/statistics.h>
 #include <core/tsc_clock.h>
 #include <core/logger.h>
 #include <chrono>
@@ -9,6 +10,7 @@
 
 using namespace FastQ;
 using namespace FastQ::SampleIdl;
+using namespace FastQ::SampleApps;
 using namespace std::chrono_literals;
 
 static const LogModule LM_APP {"FASTQ_TEST_APP"};
@@ -64,8 +66,6 @@ int main(int argc, const char** argv)
 	std::signal(SIGABRT, [](int signal) { Shutdown(); });
 	std::signal(SIGTERM, [](int signal) { Shutdown(); });
 
-	producer.Start();
-
 	SampleData data;
 	for (int i = 0; i < sizeof(data.mData); i++)
 	{
@@ -77,17 +77,24 @@ int main(int argc, const char** argv)
 	TSCClock::Initialise();
 	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
 	const uint64_t start = TSCClock::NowInCycles();
+	StatisticsCollector<uint64_t> statistics(std::chrono::nanoseconds::max().count(), 0);
 
+	producer.Start();
 	uint64_t writeCount = 0;
-	bool isRunning = true;
-	while (isRunning)
+	while (true)
 	{
-		if (writeCount % 10000)
-		{
-			isRunning = TSCClock::NowInCycles() - start < durationInCycles;
-		}
 		data.mId = writeCount;
+
+		uint64_t pollStartTs = TSCClock::NowInCycles();
+		if (pollStartTs - start > durationInCycles) { break; }
 		producer.Push(1, &data, sizeof(data));
+		std::chrono::nanoseconds pollDurationNs = TSCClock::FromCycles(TSCClock::NowInCycles() - pollStartTs);
+		statistics.Record(pollDurationNs.count());
+		if (pollDurationNs.count() > 10000)
+		{
+			LOG(FASTQ_WARN, LM_APP, "push duration over 10us: %d ns, cycle_count: %llu", pollDurationNs, statistics.GetCount());
+		}
+
 		writeCount++;
 		if (shouldLog) { LOG(FASTQ_INFO, LM_APP, "wrote: %llu", writeCount); }
 		if (goSlow) { std::this_thread::sleep_for(1ms); }
@@ -98,6 +105,7 @@ int main(int argc, const char** argv)
 	LOG(FASTQ_INFO, LM_APP, "total write count: %llu over %d ms", writeCount, realDuration.count());
 	const double mbPerSec = (writeCount * sizeof(data) * 1.0) / (1024.0 * 1024.0) / duration.count();
 	LOG(FASTQ_INFO, LM_APP, "[write_metric] {\"mb_per_sec\": %f, \"finished\": 1}", mbPerSec);
+	statistics.Report(LM_APP, "write_metric", "push_duration_ns");
 
 	return 1;
 }

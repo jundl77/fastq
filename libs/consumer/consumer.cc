@@ -68,7 +68,7 @@ bool Consumer::Poll()
 	if (!AssertInSync()) { return false; }
 	Idl::FramingHeader framingHeader;
 	mLastReadPosition = ReadData(mLastReadPosition, &framingHeader, sizeof(Idl::FramingHeader));
-  
+
 	// check to make sure we were not overtaken while reading the header
 	if (!AssertInSync()) { return false; }
 	if (mCurrentReadBuffer.capacity() < framingHeader.mSize)

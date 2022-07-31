@@ -1,5 +1,6 @@
 #include <consumer/consumer.h>
 #include <sample_idl/sample_idl.h>
+#include <shared_lib/statistics.h>
 #include <core/tsc_clock.h>
 #include <core/logger.h>
 #include <chrono>
@@ -7,6 +8,7 @@
 
 using namespace FastQ;
 using namespace FastQ::SampleIdl;
+using namespace FastQ::SampleApps;
 
 static const LogModule LM_APP {"FASTQ_TEST_APP"};
 
@@ -87,27 +89,27 @@ int main(int argc, const char** argv)
 	std::signal(SIGABRT, [](int signal) { Shutdown(); });
 	std::signal(SIGTERM, [](int signal) { Shutdown(); });
 
-	consumer.Start();
-	LOG(FASTQ_INFO, LM_APP, "reading data..");
-
 	TSCClock::Initialise();
 	const uint64_t durationInCycles = TSCClock::ToCycles<std::chrono::seconds>(duration);
 	const uint64_t start = TSCClock::NowInCycles();
+	StatisticsCollector<uint64_t> statistics(std::chrono::nanoseconds::max().count(), 0);
 
+	consumer.Start();
+	LOG(FASTQ_INFO, LM_APP, "reading data..");
 	THROW_IF(!consumer.IsConnected(), "consumer not connected to producer, is producer running?");
-
-	uint64_t cycleCount = 0;
-	bool isRunning = true;
 	try
 	{
-		while (isRunning && consumer.IsConnected())
+		while (consumer.IsConnected())
 		{
-			if (cycleCount % 10000)
-			{
-				isRunning = TSCClock::NowInCycles() - start < durationInCycles;
-			}
+			uint64_t pollStartTs = TSCClock::NowInCycles();
+			if (pollStartTs - start > durationInCycles) { break; }
 			consumer.Poll();
-			cycleCount++;
+			std::chrono::nanoseconds pollDurationNs = TSCClock::FromCycles(TSCClock::NowInCycles() - pollStartTs);
+			statistics.Record(pollDurationNs.count());
+			if (pollDurationNs.count() > 10000)
+			{
+				LOG(FASTQ_WARN, LM_APP, "poll duration over 10us: %d ns, cycle_count: %llu", pollDurationNs, statistics.GetCount());
+			}
 		}
 	}
 	catch (const std::runtime_error& error)
@@ -120,5 +122,6 @@ int main(int argc, const char** argv)
 	LOG(FASTQ_INFO, LM_APP, "total read count: %llu over %d ms", handler.mReadCount, realDuration.count());
 	const double mbPerSec = (handler.mReadCount * sizeof(SampleData) * 1.0) / (1024.0 * 1024.0) / duration.count();
 	LOG(FASTQ_INFO, LM_APP, "[read_metric] {\"mb_per_sec\": %f, \"finished\": %d}", mbPerSec, !handler.mExitedOnError);
+	statistics.Report(LM_APP, "read_metric", "poll_duration_ns");
 	return 1;
 }
